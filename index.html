@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cofre de Informações</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #131316;
+    --surface: #1c1c20;
+    --border: #2e2e35;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #818cf8;
+    --accent-soft: #26263a;
+    --danger: #f87171;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  input[type=text], textarea, select {
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  textarea { resize: vertical; min-height: 78px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field { margin-bottom: 14px; }
+  .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  button {
+    font: inherit;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #14141a;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .88; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  select:disabled, textarea:disabled { opacity: .5; cursor: not-allowed; }
+
+  .row { display: flex; gap: 10px; align-items: flex-start; }
+  .row > *:first-child { flex: 1; }
+
+  /* Resultado da busca */
+  .answer {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    background: var(--bg);
+  }
+  .answer .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .answer .content { white-space: pre-wrap; word-break: break-word; }
+  .answer .go { margin-top: 10px; font-size: 13px; }
+  .answer.empty { border-left-color: var(--border); color: var(--muted); }
+  .others { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .others ul { margin: 6px 0 0; padding-left: 18px; }
+  .others li { margin-bottom: 3px; }
+
+  /* Atalho para empresas */
+  .companies { display: flex; flex-wrap: wrap; gap: 8px; }
+  .companies a {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .companies a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  .empty-state { color: var(--muted); font-size: 14px; }
+
+  .toast {
+    position: fixed;
+    left: 50%; bottom: 24px;
+    transform: translate(-50%, 12px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 520px) {
+    body { padding: 20px 14px 60px; }
+    section { padding: 16px; }
+    .row { flex-direction: column; }
+    .row > button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cofre de Informações</h1>
+    <div class="sub">Pergunte em linguagem natural. <a href="empresas.html">Cadastro de empresas &rarr;</a></div>
+  </header>
+
+  <section>
+    <h2>Perguntar</h2>
+    <div class="row">
+      <input type="text" id="question" placeholder="ex: qual a senha do painel da Empresa X?" autocomplete="off">
+      <button id="ask">Buscar</button>
+    </div>
+    <div id="answer"></div>
+  </section>
+
+  <section id="registro">
+    <h2>Nova anotação</h2>
+    <div class="field">
+      <label for="empresa-sel">Empresa</label>
+      <select id="empresa-sel"></select>
+    </div>
+    <div class="field">
+      <label for="note">Informação</label>
+      <textarea id="note" placeholder="ex: senha do painel: abc123"></textarea>
+    </div>
+    <div class="actions">
+      <button id="save">Salvar anotação</button>
+      <span class="hint">Ctrl+Enter salva · <a href="empresas.html">cadastrar nova empresa</a></span>
+    </div>
+    <div class="hint" id="saved" style="margin-top:10px" hidden></div>
+  </section>
+
+  <section>
+    <h2>Empresas</h2>
+    <div class="companies" id="companies"></div>
+    <div class="empty-state" id="companies-empty" hidden>
+      Nenhuma empresa cadastrada. <a href="empresas.html">Cadastrar a primeira</a>.
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Persistência ---------- */
+  var KEY = "cofre.v1";
+  var db = load();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      var d = raw ? JSON.parse(raw) : null;
+      if (!d || !Array.isArray(d.empresas) || !Array.isArray(d.anotacoes)) throw 0;
+      return d;
+    } catch (e) {
+      return { empresas: [], anotacoes: [] };
+    }
+  }
+  function persist() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+      return true;
+    } catch (e) {
+      toast("Não foi possível salvar (armazenamento cheio ou bloqueado).");
+      return false;
+    }
+  }
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  }
+
+  /* ---------- Texto ---------- */
+  var STOPWORDS = ("a o as os um uma uns umas de do da dos das em no na nos nas por para com sem sobre " +
+    "qual quais que e ou eu meu minha seu sua ao aos me diga mostra mostre saber preciso " +
+    "empresa cliente aqui esta este essa esse isso lembre lembra qualquer tem ter eh e sao " +
+    "quero onde quando como").split(/\s+/);
+  var STOP = {};
+  STOPWORDS.forEach(function (w) { STOP[w] = true; });
+
+  function norm(s) {
+    return (s || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9@._\-\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  function tokens(s) {
+    return norm(s).split(" ").filter(function (t) { return t.length > 1; });
+  }
+  function keywords(s) {
+    return tokens(s).filter(function (t) { return !STOP[t]; });
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function fmtDate(ts) {
+    var d = new Date(ts);
+    return d.toLocaleDateString("pt-BR") + " " +
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function anotacoesDe(empresaId) {
+    return db.anotacoes
+      .filter(function (a) { return a.empresa_id === empresaId; })
+      .sort(function (a, b) { return b.data_criacao - a.data_criacao; });
+  }
+  function nomeEmpresa(id) {
+    var e = db.empresas.find(function (x) { return x.id === id; });
+    return e ? e.nome : "—";
+  }
+
+  /* ---------- Lógica de busca ---------- */
+
+  // Passo 1: identificar a empresa citada na pergunta.
+  function detectarEmpresa(pergunta) {
+    var q = " " + norm(pergunta) + " ";
+    var melhor = null;
+    // Nome citado literalmente; vence o nome mais longo (mais específico).
+    db.empresas.forEach(function (e) {
+      var n = norm(e.nome);
+      if (!n) return;
+      if (q.indexOf(" " + n + " ") !== -1 && (!melhor || n.length > norm(melhor.nome).length)) melhor = e;
+    });
+    if (melhor) return melhor;
+
+    // Fallback: nome citado parcialmente ("Julia" -> "Julia Panza Doces").
+    var qt = tokens(pergunta);
+    var candidatos = [];
+    db.empresas.forEach(function (e) {
+      var nt = tokens(e.nome).filter(function (t) { return !STOP[t]; });
+      if (!nt.length) return;
+      var hits = nt.filter(function (t) { return qt.indexOf(t) !== -1; }).length;
+      if (hits) candidatos.push({ empresa: e, hits: hits, prop: hits / nt.length });
+    });
+    if (!candidatos.length) return null;
+
+    candidatos.sort(function (a, b) { return b.hits - a.hits || b.prop - a.prop; });
+    // Só aceita quando não há empate: com duas "Julia" cadastradas, é melhor
+    // avisar que não deu para identificar do que devolver a senha da errada.
+    if (candidatos.length === 1 || candidatos[0].hits > candidatos[1].hits) {
+      return candidatos[0].empresa;
+    }
+    return null;
+  }
+
+  // Passos 2 e 3: pontuar as anotações da empresa pelas palavras-chave da pergunta.
+  function pontuar(anotacao, termos) {
+    var conteudo = norm(anotacao.conteudo);
+    var rotulo = norm(anotacao.conteudo.split(/[:=\-–]/)[0]); // trecho antes do ":" pesa mais
+    var score = 0, achados = [];
+    termos.forEach(function (t) {
+      var raiz = t.length > 4 ? t.slice(0, Math.max(4, t.length - 2)) : t;
+      var re = new RegExp("(^|[^a-z0-9])" + raiz.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      if (re.test(conteudo)) {
+        score += 1;
+        achados.push(t);
+        if (re.test(rotulo)) score += 1.5;
+      }
+    });
+    return { score: score, achados: achados };
+  }
+
+  function buscar(pergunta) {
+    var empresa = detectarEmpresa(pergunta);
+    var universo = empresa ? anotacoesDe(empresa.id) : db.anotacoes.slice();
+    if (!universo.length) return { empresa: empresa, resultados: [], motivo: empresa ? "sem-anotacoes" : "vazio" };
+
+    var nomeTokens = empresa ? tokens(empresa.nome) : [];
+    var termos = keywords(pergunta).filter(function (t) { return nomeTokens.indexOf(t) === -1; });
+    if (!termos.length) {
+      // Pergunta só cita a empresa: devolve as anotações mais recentes.
+      return {
+        empresa: empresa,
+        resultados: universo.slice(0, 3).map(function (a) {
+          return { anotacao: a, score: 0, achados: [] };
+        }),
+        motivo: "sem-termos"
+      };
+    }
+
+    var ranked = universo.map(function (a) {
+      var p = pontuar(a, termos);
+      return { anotacao: a, score: p.score, achados: p.achados };
+    }).filter(function (r) { return r.score > 0; })
+      .sort(function (a, b) {
+        return b.score - a.score || b.anotacao.data_criacao - a.anotacao.data_criacao;
+      });
+
+    return { empresa: empresa, resultados: ranked.slice(0, 4), motivo: ranked.length ? "ok" : "sem-match" };
+  }
+
+  /* ---------- UI ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var elQuestion = $("question"), elAnswer = $("answer"),
+      elCompanies = $("companies"), elCompaniesEmpty = $("companies-empty"),
+      elSel = $("empresa-sel"), elNote = $("note"), elSave = $("save"),
+      elSaved = $("saved"), elToast = $("toast");
+
+  var toastTimer;
+  function toast(msg) {
+    elToast.textContent = msg;
+    elToast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { elToast.classList.remove("show"); }, 2200);
+  }
+
+  function linkEmpresa(id, texto) {
+    return '<a href="empresa.html?id=' + encodeURIComponent(id) + '">' + esc(texto) + '</a>';
+  }
+
+  function semResposta(msgHtml) {
+    elAnswer.innerHTML = '<div class="answer empty">' + msgHtml + '</div>';
+  }
+
+  function perguntar() {
+    var q = elQuestion.value.trim();
+    if (!q) { elAnswer.innerHTML = ""; return; }
+
+    if (!db.anotacoes.length) {
+      return semResposta('Nenhuma anotação cadastrada ainda. Abra a sessão de uma empresa para registrar a primeira.');
+    }
+
+    var r = buscar(q);
+
+    if (r.motivo === "sem-anotacoes") {
+      return semResposta("Encontrei a empresa <strong>" + esc(r.empresa.nome) +
+        "</strong>, mas ela ainda não tem anotações. " +
+        linkEmpresa(r.empresa.id, "Registrar agora →"));
+    }
+    if (!r.resultados.length) {
+      var alvo = r.empresa
+        ? "Não há anotação de <strong>" + esc(r.empresa.nome) + "</strong> relacionada a essa pergunta. " +
+          linkEmpresa(r.empresa.id, "Abrir sessão da empresa →")
+        : "Não identifiquei a empresa citada, e nenhuma anotação corresponde à pergunta.";
+      return semResposta(alvo);
+    }
+
+    var melhor = r.resultados[0];
+    var empresaId = r.empresa ? r.empresa.id : melhor.anotacao.empresa_id;
+    var empresaNome = r.empresa ? r.empresa.nome : nomeEmpresa(melhor.anotacao.empresa_id);
+    var aviso = r.empresa ? "" : " · empresa não identificada na pergunta, buscando em todas";
+
+    var html = '<div class="answer">' +
+      '<div class="meta">' + esc(empresaNome) + ' · ' + fmtDate(melhor.anotacao.data_criacao) + aviso + '</div>' +
+      '<div class="content">' + esc(melhor.anotacao.conteudo) + '</div>';
+
+    var outros = r.resultados.slice(1);
+    if (outros.length) {
+      html += '<div class="others">Outras anotações relacionadas:<ul>' +
+        outros.map(function (o) {
+          return '<li>' + esc(o.anotacao.conteudo.slice(0, 120)) +
+            (o.anotacao.conteudo.length > 120 ? "…" : "") + '</li>';
+        }).join("") + '</ul>';
+      html += '</div>';
+    }
+    html += '<div class="go">' + linkEmpresa(empresaId, "Ver todas as anotações de " + empresaNome + " →") + '</div>';
+    html += '</div>';
+
+    elAnswer.innerHTML = html;
+  }
+
+  function renderCompanies() {
+    var lista = empresasOrdenadas();
+    if (!lista.length) {
+      elCompanies.innerHTML = "";
+      elCompaniesEmpty.hidden = false;
+      return;
+    }
+    elCompaniesEmpty.hidden = true;
+    elCompanies.innerHTML = lista.map(function (e) {
+      return linkEmpresa(e.id, e.nome);
+    }).join("");
+  }
+
+  /* ---------- Nova anotação ---------- */
+  function empresasOrdenadas() {
+    return db.empresas.slice().sort(function (a, b) {
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+  }
+
+  function renderSelect() {
+    var lista = empresasOrdenadas();
+    if (!lista.length) {
+      elSel.innerHTML = '<option value="">Nenhuma empresa cadastrada</option>';
+      elSel.disabled = true;
+      elNote.disabled = true;
+      elSave.disabled = true;
+      return;
+    }
+    var anterior = elSel.value;
+    elSel.disabled = false;
+    elNote.disabled = false;
+    elSave.disabled = false;
+    elSel.innerHTML = '<option value="">Selecione a empresa...</option>' +
+      lista.map(function (e) {
+        return '<option value="' + esc(e.id) + '">' + esc(e.nome) + '</option>';
+      }).join("");
+    if (anterior) elSel.value = anterior;
+  }
+
+  function salvarAnotacao() {
+    var empresaId = elSel.value;
+    if (!empresaId) { elSel.focus(); return toast("Selecione a empresa."); }
+    var conteudo = elNote.value.trim();
+    if (!conteudo) { elNote.focus(); return toast("Escreva a informação."); }
+
+    db.anotacoes.push({
+      id: uid(),
+      empresa_id: empresaId,
+      conteudo: conteudo,
+      data_criacao: Date.now()
+    });
+    if (!persist()) { db.anotacoes.pop(); return; }
+
+    elNote.value = "";
+    elSaved.hidden = false;
+    elSaved.innerHTML = "Salvo em <strong>" + esc(nomeEmpresa(empresaId)) + "</strong>. " +
+      linkEmpresa(empresaId, "Ver anotações →");
+    toast("Anotação salva.");
+    elNote.focus();
+  }
+
+  elSave.addEventListener("click", salvarAnotacao);
+  elNote.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); salvarAnotacao(); }
+  });
+  elSel.addEventListener("change", function () { elSaved.hidden = true; });
+
+  $("ask").addEventListener("click", perguntar);
+  elQuestion.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); perguntar(); }
+  });
+
+  renderSelect();
+  renderCompanies();
+})();
+</script>
+</body>
+</html>

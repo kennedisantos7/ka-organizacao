@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro de Empresas</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #131316;
+    --surface: #1c1c20;
+    --border: #2e2e35;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #818cf8;
+    --accent-soft: #26263a;
+    --danger: #f87171;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .sub a { color: var(--accent); text-decoration: none; }
+  .sub a:hover { text-decoration: underline; }
+
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  button {
+    font: inherit;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #14141a;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  button:hover { opacity: .88; }
+  .ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .ghost:hover { color: var(--text); opacity: 1; }
+  .ghost.danger:hover { color: var(--danger); border-color: var(--danger); }
+
+  .grid { display: flex; gap: 12px; }
+  .grid > div { flex: 1; }
+  .actions { margin-top: 14px; display: flex; gap: 8px; align-items: center; }
+  .actions .hint { font-size: 13px; color: var(--muted); }
+
+  .search { margin-bottom: 14px; }
+
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  ul.list li {
+    border-top: 1px solid var(--border);
+    padding: 12px 0;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  ul.list li:first-child { border-top: none; padding-top: 0; }
+  .info { flex: 1; min-width: 0; }
+  .nome { font-weight: 500; word-break: break-word; }
+  .nome a { color: var(--text); }
+  .nome a:hover { color: var(--accent); text-decoration: none; }
+  .resp { font-size: 13px; color: var(--muted); word-break: break-word; }
+  .acts { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .empty-state { color: var(--muted); font-size: 14px; }
+  .toast {
+    position: fixed;
+    left: 50%; bottom: 24px;
+    transform: translate(-50%, 12px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 520px) {
+    body { padding: 20px 14px 60px; }
+    section { padding: 16px; }
+    .grid { flex-direction: column; gap: 14px; }
+    .actions button { flex: 1; }
+    ul.list li { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cadastro de Empresas</h1>
+    <div class="sub">Nome e responsável. <a href="index.html">Ir para o cofre &rarr;</a></div>
+  </header>
+
+  <section>
+    <h2 id="form-title">Nova empresa</h2>
+    <div class="grid">
+      <div>
+        <label for="nome">Nome da empresa</label>
+        <input type="text" id="nome" placeholder="ex: Acme Contabilidade" autocomplete="off">
+      </div>
+      <div>
+        <label for="resp">Responsável</label>
+        <input type="text" id="resp" placeholder="ex: Maria Souza" autocomplete="off">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="salvar">Salvar</button>
+      <button class="ghost" id="cancelar" hidden>Cancelar</button>
+      <span class="hint" id="hint"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Empresas cadastradas (<span id="total">0</span>)</h2>
+    <input type="text" id="busca" class="search" placeholder="Filtrar por nome ou responsável..." autocomplete="off">
+    <ul class="list" id="lista"></ul>
+    <div class="empty-state" id="vazio"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Persistência (mesma base do cofre) ---------- */
+  var KEY = "cofre.v1";
+  var db = load();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      var d = raw ? JSON.parse(raw) : null;
+      if (!d || !Array.isArray(d.empresas) || !Array.isArray(d.anotacoes)) throw 0;
+      return d;
+    } catch (e) {
+      return { empresas: [], anotacoes: [] };
+    }
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+    } catch (e) {
+      toast("Não foi possível salvar (armazenamento cheio ou bloqueado).");
+    }
+  }
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+  }
+
+  function norm(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var elNome = $("nome"), elResp = $("resp"), elSalvar = $("salvar"), elCancelar = $("cancelar"),
+      elTitle = $("form-title"), elHint = $("hint"), elBusca = $("busca"),
+      elLista = $("lista"), elVazio = $("vazio"), elTotal = $("total"), elToast = $("toast");
+
+  var editandoId = null;
+  var toastTimer;
+  function toast(msg) {
+    elToast.textContent = msg;
+    elToast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { elToast.classList.remove("show"); }, 2200);
+  }
+
+  /* ---------- Salvar / editar ---------- */
+  function salvar() {
+    var nome = elNome.value.trim();
+    var resp = elResp.value.trim();
+    if (!nome) { elNome.focus(); return toast("Informe o nome da empresa."); }
+
+    var dup = db.empresas.find(function (e) {
+      return norm(e.nome) === norm(nome) && e.id !== editandoId;
+    });
+    if (dup) { elNome.focus(); return toast("Já existe uma empresa com esse nome."); }
+
+    if (editandoId) {
+      var e = db.empresas.find(function (x) { return x.id === editandoId; });
+      if (e) { e.nome = nome; e.responsavel = resp; }
+      toast("Empresa atualizada.");
+    } else {
+      db.empresas.push({ id: uid(), nome: nome, responsavel: resp });
+      toast("Empresa cadastrada.");
+    }
+    save();
+    limparForm();
+    render();
+  }
+
+  function editar(id) {
+    var e = db.empresas.find(function (x) { return x.id === id; });
+    if (!e) return;
+    editandoId = id;
+    elNome.value = e.nome;
+    elResp.value = e.responsavel || "";
+    elTitle.textContent = "Editando empresa";
+    elSalvar.textContent = "Salvar alterações";
+    elCancelar.hidden = false;
+    elNome.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function limparForm() {
+    editandoId = null;
+    elNome.value = "";
+    elResp.value = "";
+    elTitle.textContent = "Nova empresa";
+    elSalvar.textContent = "Salvar";
+    elCancelar.hidden = true;
+    elHint.textContent = "";
+  }
+
+  function excluir(id) {
+    var e = db.empresas.find(function (x) { return x.id === id; });
+    if (!e) return;
+    var qtd = db.anotacoes.filter(function (a) { return a.empresa_id === id; }).length;
+    var msg = qtd
+      ? 'Excluir "' + e.nome + '" e suas ' + qtd + ' anotação(ões) do cofre?'
+      : 'Excluir "' + e.nome + '"?';
+    if (!confirm(msg)) return;
+    db.empresas = db.empresas.filter(function (x) { return x.id !== id; });
+    db.anotacoes = db.anotacoes.filter(function (a) { return a.empresa_id !== id; });
+    save();
+    if (editandoId === id) limparForm();
+    render();
+    toast("Empresa excluída.");
+  }
+
+  elSalvar.addEventListener("click", salvar);
+  elCancelar.addEventListener("click", limparForm);
+  [elNome, elResp].forEach(function (input) {
+    input.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); salvar(); }
+      if (ev.key === "Escape" && editandoId) limparForm();
+    });
+  });
+
+  /* ---------- Listagem ---------- */
+  function render() {
+    var filtro = norm(elBusca.value);
+    var todas = db.empresas.slice().sort(function (a, b) {
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+    var lista = filtro
+      ? todas.filter(function (e) {
+          return norm(e.nome).indexOf(filtro) !== -1 || norm(e.responsavel).indexOf(filtro) !== -1;
+        })
+      : todas;
+
+    elTotal.textContent = todas.length;
+
+    if (!lista.length) {
+      elLista.innerHTML = "";
+      elVazio.hidden = false;
+      elVazio.textContent = todas.length
+        ? "Nenhuma empresa corresponde ao filtro."
+        : "Nenhuma empresa cadastrada ainda.";
+      return;
+    }
+    elVazio.hidden = true;
+    elLista.innerHTML = lista.map(function (e) {
+      var qtd = db.anotacoes.filter(function (a) { return a.empresa_id === e.id; }).length;
+      var link = "empresa.html?id=" + encodeURIComponent(e.id);
+      return '<li>' +
+        '<div class="info">' +
+          '<div class="nome"><a href="' + link + '">' + esc(e.nome) + '</a></div>' +
+          '<div class="resp">' + (e.responsavel ? esc(e.responsavel) : "sem responsável") +
+            ' · ' + qtd + ' anotação(ões)</div>' +
+        '</div>' +
+        '<div class="acts">' +
+          '<a class="ghost" href="' + link + '" style="display:inline-block;text-decoration:none">Abrir</a>' +
+          '<button class="ghost" data-edit="' + e.id + '">Editar</button>' +
+          '<button class="ghost danger" data-del="' + e.id + '">Excluir</button>' +
+        '</div>' +
+      '</li>';
+    }).join("");
+  }
+
+  elLista.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn) return;
+    if (btn.dataset.edit) editar(btn.dataset.edit);
+    else if (btn.dataset.del) excluir(btn.dataset.del);
+  });
+  elBusca.addEventListener("input", render);
+
+  render();
+})();
+</script>
+</body>
+</html>
