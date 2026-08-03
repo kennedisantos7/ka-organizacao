@@ -163,6 +163,45 @@ function keywords(s) {
 export function esc(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
+// Endereços dentro do texto: "https://...", "www...." ou "drive.google.com/...".
+const RE_URL = /((?:https?:\/\/|www\.)[^\s<>"']+|[a-z0-9-]+(?:\.[a-z0-9-]+)+\/[^\s<>"']*)/gi;
+
+// Encurta o meio de endereços longos (links do Drive são enormes) sem perder o destino.
+function textoDoLink(url, max = 58) {
+  if (url.length <= max) return url;
+  return url.slice(0, max - 14) + "…" + url.slice(-13);
+}
+
+// Escapa o conteúdo e converte endereços em links que abrem em nova guia.
+export function conteudoComLinks(texto) {
+  const original = String(texto);
+  let out = "";
+  let fim = 0;
+
+  for (const m of original.matchAll(RE_URL)) {
+    let url = m[0];
+
+    // Pontuação final costuma ser da frase, não do endereço.
+    const cauda = url.match(/[.,;:!?]+$/);
+    if (cauda) url = url.slice(0, -cauda[0].length);
+    // Fecha-parênteses só conta se houver um abre correspondente dentro do endereço.
+    while (url.endsWith(")") && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
+      url = url.slice(0, -1);
+    }
+    if (!url) continue;
+
+    const href = /^https?:\/\//i.test(url) ? url : "https://" + url;
+    out += esc(original.slice(fim, m.index));
+    out +=
+      `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">` +
+      `${esc(textoDoLink(url))}<span class="ext">↗</span></a>`;
+    fim = m.index + url.length;
+  }
+
+  out += esc(original.slice(fim));
+  return out;
+}
+
 export function fmtDate(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });

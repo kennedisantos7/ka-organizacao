@@ -58,6 +58,17 @@ bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
 | `empresas.html` | Cadastrar empresas (nome + responsável) e compartilhar |
 | `empresa.html` | Sessão de uma empresa: todas as anotações dela |
 
+## Links nas anotações
+
+Endereços digitados na anotação viram links clicáveis, que abrem em **nova guia**.
+Funciona com `https://...`, com `www.algo.com/...` e mesmo sem prefixo, quando há
+uma barra no caminho (`drive.google.com/file/...`). Vale para Drive, Canva,
+painéis, o que for.
+
+Endereços muito longos aparecem encurtados no meio (`https://drive.google…haring`),
+mas o destino continua completo — passe o mouse para ver por inteiro. Emails
+**não** viram link, para não abrir o programa de email sem querer.
+
 ## Compartilhamento
 
 Cada empresa nasce **privada**: só quem cadastrou enxerga.

@@ -55,7 +55,7 @@
 <script type="module">
 import {
   exigirLogin, montarTopbar, api, buscar, esc, fmtDate, toast, linkEmpresa,
-  dadosLocaisPendentes, importarDadosLocais,
+  conteudoComLinks, dadosLocaisPendentes, importarDadosLocais,
 } from "./app.js";
 
 const sessao = await exigirLogin();
@@ -144,7 +144,7 @@ if (sessao) {
     let html =
       '<div class="answer">' +
       `<div class="meta">${esc(empresaNome)} · ${fmtDate(melhor.anotacao.data_criacao)}${aviso}</div>` +
-      `<div class="content">${esc(melhor.anotacao.conteudo)}</div>`;
+      `<div class="content">${conteudoComLinks(melhor.anotacao.conteudo)}</div>`;
 
     const outros = r.resultados.slice(1);
     if (outros.length) {

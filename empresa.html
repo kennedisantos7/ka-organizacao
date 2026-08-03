@@ -45,7 +45,7 @@
 </div>
 
 <script type="module">
-import { exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar } from "./app.js";
+import { exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar, conteudoComLinks } from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
@@ -149,7 +149,7 @@ if (sessao) {
         return (
           "<li>" +
             '<div class="body">' +
-              `<div class="content">${esc(a.conteudo)}</div>` +
+              `<div class="content">${conteudoComLinks(a.conteudo)}</div>` +
               `<div class="date">${fmtDate(a.data_criacao)}${minha ? "" : " · anotado pelo outro membro"}</div>` +
             "</div>" +
             '<div class="acts">' +

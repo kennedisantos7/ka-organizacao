@@ -219,6 +219,21 @@ ul.list.notes li { align-items: flex-start; }
 
 .loading { color: var(--muted); font-size: 14px; }
 
+/* Endereços reconhecidos dentro das anotações */
+.content a {
+  color: var(--accent);
+  word-break: break-all;
+  border-bottom: 1px solid transparent;
+}
+.content a:hover { text-decoration: none; border-bottom-color: var(--accent); }
+.content a .ext {
+  font-size: 11px;
+  margin-left: 3px;
+  vertical-align: 1px;
+  opacity: .7;
+  word-break: normal;
+}
+
 @media (max-width: 520px) {
   body { padding: 20px 14px 60px; }
   section { padding: 16px; }
