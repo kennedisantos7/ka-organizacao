@@ -4,147 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sessão da Empresa</title>
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #131316;
-    --surface: #1c1c20;
-    --border: #2e2e35;
-    --text: #f4f4f5;
-    --muted: #a1a1aa;
-    --accent: #818cf8;
-    --accent-soft: #26263a;
-    --danger: #f87171;
-    --radius: 10px;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
-  }
-
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 32px 20px 80px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: 680px; margin: 0 auto; }
-
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .back { font-size: 13px; color: var(--muted); display: inline-block; margin-bottom: 16px; }
-  .back:hover { color: var(--accent); text-decoration: none; }
-
-  header { margin-bottom: 28px; }
-  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; word-break: break-word; }
-  .sub { color: var(--muted); font-size: 14px; }
-
-  section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 18px;
-    box-shadow: var(--shadow);
-  }
-  h2 {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--muted);
-    margin: 0 0 14px;
-  }
-
-  textarea, input[type=text] {
-    width: 100%;
-    font: inherit;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    outline: none;
-    transition: border-color .15s, box-shadow .15s;
-  }
-  textarea:focus, input[type=text]:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  textarea { resize: vertical; min-height: 78px; }
-
-  button {
-    font: inherit;
-    font-weight: 500;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 10px 16px;
-    background: var(--accent);
-    color: #14141a;
-    cursor: pointer;
-    transition: opacity .15s;
-  }
-  button:hover { opacity: .88; }
-  button.ghost {
-    background: transparent;
-    color: var(--muted);
-    border-color: var(--border);
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-  button.ghost:hover { color: var(--text); }
-  button.ghost.danger:hover { color: var(--danger); border-color: var(--danger); }
-
-  .actions { margin-top: 12px; display: flex; align-items: center; gap: 12px; }
-  .hint { font-size: 12px; color: var(--muted); }
-  .search { margin-bottom: 14px; }
-
-  ul.notes { list-style: none; margin: 0; padding: 0; }
-  ul.notes li {
-    border-top: 1px solid var(--border);
-    padding: 12px 0;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  ul.notes li:first-child { border-top: none; padding-top: 0; }
-  .body { flex: 1; min-width: 0; }
-  .content { white-space: pre-wrap; word-break: break-word; }
-  .date { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .acts { display: flex; gap: 6px; flex-shrink: 0; }
-
-  .empty-state { color: var(--muted); font-size: 14px; }
-  .toast {
-    position: fixed;
-    left: 50%; bottom: 24px;
-    transform: translate(-50%, 12px);
-    background: var(--text);
-    color: var(--bg);
-    padding: 10px 18px;
-    border-radius: 999px;
-    font-size: 13px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .2s, transform .2s;
-  }
-  .toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-  @media (max-width: 520px) {
-    body { padding: 20px 14px 60px; }
-    section { padding: 16px; }
-    .actions button { flex: 1; }
-    ul.notes li { flex-direction: column; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="index.html">&larr; Cofre</a>
+  <div class="topbar" id="topbar"></div>
+
   <header>
-    <h1 id="nome">—</h1>
+    <h1 id="nome">Carregando...</h1>
     <div class="sub" id="responsavel"></div>
+    <div class="actions" id="compartilhar-area" hidden>
+      <button class="ghost" id="compartilhar"></button>
+      <span class="hint" id="compartilhar-hint"></span>
+    </div>
   </header>
 
   <div id="conteudo" hidden>
@@ -160,187 +32,158 @@
     <section>
       <h2>Anotações (<span id="total">0</span>)</h2>
       <input type="text" id="filtro" class="search" placeholder="Filtrar anotações..." autocomplete="off">
-      <ul class="notes" id="notes"></ul>
+      <ul class="list notes" id="notes"></ul>
       <div class="empty-state" id="empty"></div>
     </section>
   </div>
 
-  <div id="erro" hidden>
-    <section>
-      <div class="empty-state">
-        Empresa não encontrada. <a href="empresas.html">Ver cadastro de empresas</a>.
-      </div>
-    </section>
-  </div>
+  <section id="erro" hidden>
+    <div class="empty-state">
+      Empresa não encontrada. <a href="empresas.html">Ver cadastro de empresas</a>.
+    </div>
+  </section>
 </div>
 
-<div class="toast" id="toast"></div>
+<script type="module">
+import { exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar } from "./app.js";
 
-<script>
-(function () {
-  "use strict";
+const sessao = await exigirLogin();
+if (sessao) {
+  const $ = (id) => document.getElementById(id);
+  montarTopbar($("topbar"), sessao, [
+    { href: "index.html", texto: "← Cofre" },
+    { href: "empresas.html", texto: "Empresas" },
+  ]);
 
-  /* ---------- Persistência (mesma base do cofre) ---------- */
-  var KEY = "cofre.v1";
-  var db = load();
-
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      var d = raw ? JSON.parse(raw) : null;
-      if (!d || !Array.isArray(d.empresas) || !Array.isArray(d.anotacoes)) throw 0;
-      return d;
-    } catch (e) {
-      return { empresas: [], anotacoes: [] };
-    }
-  }
-  function save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(db));
-    } catch (e) {
-      toast("Não foi possível salvar (armazenamento cheio ou bloqueado).");
-    }
-  }
-  function uid() {
-    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
-  }
-  function norm(s) {
-    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-  }
-  function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-  function fmtDate(ts) {
-    var d = new Date(ts);
-    return d.toLocaleDateString("pt-BR") + " " +
-      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  var $ = function (id) { return document.getElementById(id); };
-  var elToast = $("toast");
-  var toastTimer;
-  function toast(msg) {
-    elToast.textContent = msg;
-    elToast.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { elToast.classList.remove("show"); }, 2200);
-  }
-
-  /* ---------- Empresa da URL ---------- */
-  var id = new URLSearchParams(location.search).get("id");
-  var empresa = db.empresas.find(function (e) { return e.id === id; });
+  const id = new URLSearchParams(location.search).get("id");
+  const empresa = id ? await api.obterEmpresa(id) : null;
 
   if (!empresa) {
+    $("nome").textContent = "Empresa não encontrada";
     $("erro").hidden = false;
     document.title = "Empresa não encontrada";
-    return;
-  }
+  } else {
+    const meu = empresa.user_id === sessao.user.id;
 
-  $("conteudo").hidden = false;
-  $("nome").textContent = empresa.nome;
-  $("responsavel").textContent = empresa.responsavel
-    ? "Responsável: " + empresa.responsavel
-    : "Sem responsável definido";
-  document.title = empresa.nome + " · Cofre";
+    $("nome").textContent = empresa.nome;
+    $("responsavel").textContent =
+      (empresa.responsavel ? "Responsável: " + empresa.responsavel : "Sem responsável definido") +
+      (meu ? "" : " · empresa compartilhada com você");
+    document.title = empresa.nome + " · Cofre";
+    $("conteudo").hidden = false;
 
-  var elNote = $("note"), elNotes = $("notes"), elEmpty = $("empty"),
-      elTotal = $("total"), elFiltro = $("filtro");
+    /* ---------- Compartilhamento (só o dono controla) ---------- */
+    if (meu) {
+      const area = $("compartilhar-area"), btn = $("compartilhar"), hint = $("compartilhar-hint");
+      area.hidden = false;
 
-  function anotacoes() {
-    return db.anotacoes
-      .filter(function (a) { return a.empresa_id === empresa.id; })
-      .sort(function (a, b) { return b.data_criacao - a.data_criacao; });
-  }
+      const pintar = () => {
+        btn.textContent = empresa.compartilhada ? "Desativar compartilhamento" : "Compartilhar com o outro membro";
+        hint.textContent = empresa.compartilhada
+          ? "O outro membro vê e pode anotar nesta empresa."
+          : "Só você vê esta empresa.";
+      };
+      pintar();
 
-  /* ---------- Salvar ---------- */
-  function salvar() {
-    var conteudo = elNote.value.trim();
-    if (!conteudo) { elNote.focus(); return toast("Escreva a informação."); }
-    db.anotacoes.push({
-      id: uid(),
-      empresa_id: empresa.id,
-      conteudo: conteudo,
-      data_criacao: Date.now()
-    });
-    save();
-    elNote.value = "";
-    render();
-    toast("Anotação salva.");
-  }
-  $("save").addEventListener("click", salvar);
-  elNote.addEventListener("keydown", function (ev) {
-    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); salvar(); }
-  });
-
-  /* ---------- Lista ---------- */
-  function render() {
-    var todas = anotacoes();
-    var f = norm(elFiltro.value);
-    var lista = f ? todas.filter(function (a) { return norm(a.conteudo).indexOf(f) !== -1; }) : todas;
-
-    elTotal.textContent = todas.length;
-
-    if (!lista.length) {
-      elNotes.innerHTML = "";
-      elEmpty.hidden = false;
-      elEmpty.textContent = todas.length
-        ? "Nenhuma anotação corresponde ao filtro."
-        : "Nenhuma anotação para esta empresa ainda.";
-      return;
+      btn.addEventListener("click", async () => {
+        const novo = !empresa.compartilhada;
+        if (novo && !confirm(`Compartilhar "${empresa.nome}" com o outro membro do cofre?\n\nEle passa a ver e anotar informações desta empresa.`)) return;
+        btn.disabled = true;
+        try {
+          await api.definirCompartilhamento(empresa.id, novo);
+          empresa.compartilhada = novo;
+          pintar();
+          toast(novo ? "Empresa compartilhada." : "Compartilhamento removido.");
+        } catch { /* erro já reportado */ } finally {
+          btn.disabled = false;
+        }
+      });
     }
-    elEmpty.hidden = true;
-    elNotes.innerHTML = lista.map(function (a) {
-      return '<li>' +
-        '<div class="body">' +
-          '<div class="content">' + esc(a.conteudo) + '</div>' +
-          '<div class="date">' + fmtDate(a.data_criacao) + '</div>' +
-        '</div>' +
-        '<div class="acts">' +
-          '<button class="ghost" data-copy="' + a.id + '">Copiar</button>' +
-          '<button class="ghost danger" data-del="' + a.id + '">Excluir</button>' +
-        '</div>' +
-      '</li>';
-    }).join("");
-  }
 
-  elNotes.addEventListener("click", function (ev) {
-    var btn = ev.target.closest("button");
-    if (!btn) return;
-    var alvo = btn.dataset.copy || btn.dataset.del;
-    var a = db.anotacoes.find(function (x) { return x.id === alvo; });
-    if (!a) return;
-    if (btn.dataset.copy) {
-      copiar(a.conteudo);
-    } else if (confirm("Excluir esta anotação?")) {
-      db.anotacoes = db.anotacoes.filter(function (x) { return x.id !== alvo; });
-      save();
+    const elNote = $("note"), elNotes = $("notes"), elEmpty = $("empty"),
+          elTotal = $("total"), elFiltro = $("filtro"), elSave = $("save");
+
+    let anotacoes = [];
+
+    async function carregar() {
+      anotacoes = await api.listarAnotacoes(empresa.id);
       render();
-      toast("Anotação excluída.");
     }
-  });
-  elFiltro.addEventListener("input", render);
 
-  function copiar(texto) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(texto).then(
-        function () { toast("Copiado."); },
-        function () { toast("Não foi possível copiar."); });
-    } else {
-      var ta = document.createElement("textarea");
-      ta.value = texto;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); toast("Copiado."); } catch (e) { toast("Não foi possível copiar."); }
-      document.body.removeChild(ta);
+    async function salvar() {
+      const conteudo = elNote.value.trim();
+      if (!conteudo) { elNote.focus(); return toast("Escreva a informação."); }
+      elSave.disabled = true;
+      try {
+        await api.criarAnotacao(empresa.id, conteudo);
+        elNote.value = "";
+        await carregar();
+        toast("Anotação salva.");
+        elNote.focus();
+      } catch { /* erro já reportado */ } finally {
+        elSave.disabled = false;
+      }
     }
+
+    elSave.addEventListener("click", salvar);
+    elNote.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); salvar(); }
+    });
+
+    function render() {
+      const f = norm(elFiltro.value);
+      const lista = f ? anotacoes.filter((a) => norm(a.conteudo).includes(f)) : anotacoes;
+      elTotal.textContent = anotacoes.length;
+
+      if (!lista.length) {
+        elNotes.innerHTML = "";
+        elEmpty.hidden = false;
+        elEmpty.textContent = anotacoes.length
+          ? "Nenhuma anotação corresponde ao filtro."
+          : "Nenhuma anotação para esta empresa ainda.";
+        return;
+      }
+      elEmpty.hidden = true;
+      elNotes.innerHTML = lista.map((a) => {
+        const minha = a.user_id === sessao.user.id;
+        return (
+          "<li>" +
+            '<div class="body">' +
+              `<div class="content">${esc(a.conteudo)}</div>` +
+              `<div class="date">${fmtDate(a.data_criacao)}${minha ? "" : " · anotado pelo outro membro"}</div>` +
+            "</div>" +
+            '<div class="acts">' +
+              `<button class="ghost" data-copy="${a.id}">Copiar</button>` +
+              // Só o autor apaga a própria anotação.
+              (minha ? `<button class="ghost danger" data-del="${a.id}">Excluir</button>` : "") +
+            "</div>" +
+          "</li>"
+        );
+      }).join("");
+    }
+
+    elNotes.addEventListener("click", async (ev) => {
+      const btn = ev.target.closest("button");
+      if (!btn) return;
+      const alvo = btn.dataset.copy || btn.dataset.del;
+      const a = anotacoes.find((x) => x.id === alvo);
+      if (!a) return;
+      if (btn.dataset.copy) {
+        copiar(a.conteudo);
+      } else if (confirm("Excluir esta anotação?")) {
+        try {
+          await api.excluirAnotacao(alvo);
+          await carregar();
+          toast("Anotação excluída.");
+        } catch { /* erro já reportado */ }
+      }
+    });
+    elFiltro.addEventListener("input", render);
+
+    await carregar();
+    elNote.focus();
   }
-
-  render();
-  elNote.focus();
-})();
+}
 </script>
 </body>
 </html>

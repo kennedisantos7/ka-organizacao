@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Cofre de Informações</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  <header>
+    <h1>Cofre de Informações</h1>
+    <div class="sub" id="modo-sub">Entre para acessar seus dados.</div>
+  </header>
+
+  <section>
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="email" placeholder="voce@email.com">
+    </div>
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <div class="error" id="erro"></div>
+    <div class="actions">
+      <button class="wide" id="entrar">Entrar</button>
+    </div>
+    <div class="hint" style="margin-top:12px">
+      <span id="alternar-texto">Ainda não tem conta?</span>
+      <a href="#" id="alternar">Criar conta</a>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { sb, configurado, toast } from "./app.js";
+
+const $ = (id) => document.getElementById(id);
+const elEmail = $("email"), elSenha = $("senha"), elErro = $("erro"), elBtn = $("entrar");
+let criandoConta = false;
+
+if (!configurado) {
+  elErro.textContent = "config.js ainda não está preenchido. Veja SETUP.md.";
+  elBtn.disabled = true;
+}
+
+// Se já houver sessão, vai direto para o destino.
+const destino = new URLSearchParams(location.search).get("next") || "index.html";
+if (configurado) {
+  const { data } = await sb.auth.getSession();
+  if (data.session) location.replace(destino);
+}
+
+function alternarModo(ev) {
+  if (ev) ev.preventDefault();
+  criandoConta = !criandoConta;
+  elErro.textContent = "";
+  $("modo-sub").textContent = criandoConta
+    ? "Crie sua conta para começar."
+    : "Entre para acessar seus dados.";
+  elBtn.textContent = criandoConta ? "Criar conta" : "Entrar";
+  $("alternar-texto").textContent = criandoConta ? "Já tem conta?" : "Ainda não tem conta?";
+  $("alternar").textContent = criandoConta ? "Entrar" : "Criar conta";
+  elSenha.setAttribute("autocomplete", criandoConta ? "new-password" : "current-password");
+}
+$("alternar").addEventListener("click", alternarModo);
+
+async function enviar() {
+  const email = elEmail.value.trim();
+  const senha = elSenha.value;
+  elErro.textContent = "";
+
+  if (!email) { elEmail.focus(); elErro.textContent = "Informe o email."; return; }
+  if (senha.length < 6) { elSenha.focus(); elErro.textContent = "A senha precisa de pelo menos 6 caracteres."; return; }
+
+  elBtn.disabled = true;
+  elBtn.textContent = criandoConta ? "Criando..." : "Entrando...";
+  try {
+    if (criandoConta) {
+      const { data, error } = await sb.auth.signUp({ email, password: senha });
+      if (error) throw error;
+      if (!data.session) {
+        // Projeto com confirmação de email ligada.
+        elErro.textContent = "";
+        toast("Conta criada. Confirme o link enviado para " + email + " e depois entre.");
+        alternarModo();
+        return;
+      }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+      if (error) throw error;
+    }
+    location.replace(destino);
+  } catch (e) {
+    const msg = String(e.message || e);
+    elErro.textContent =
+      /invalid login/i.test(msg) ? "Email ou senha incorretos."
+      : /already registered|already exists/i.test(msg) ? "Esse email já tem conta. Use 'Entrar'."
+      : /email.*confirm/i.test(msg) ? "Confirme seu email antes de entrar."
+      : msg;
+  } finally {
+    elBtn.disabled = false;
+    elBtn.textContent = criandoConta ? "Criar conta" : "Entrar";
+  }
+}
+
+elBtn.addEventListener("click", enviar);
+[elEmail, elSenha].forEach((el) =>
+  el.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); enviar(); } })
+);
+elEmail.focus();
+</script>
+</body>
+</html>
