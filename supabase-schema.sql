@@ -114,3 +114,36 @@ create policy anotacoes_atualizar on public.anotacoes
 
 create policy anotacoes_excluir on public.anotacoes
   for delete using (auth.uid() = user_id);
+
+-- ------------------------------------------------- tarefas (perfil ADM)
+-- Administrador = a primeira conta criada no cofre.
+
+create or replace function public.eh_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null
+     and auth.uid() = (select u.id from auth.users u order by u.created_at asc limit 1);
+$$;
+
+grant execute on function public.eh_admin() to authenticated;
+
+create table if not exists public.tarefas (
+  id           uuid primary key default gen_random_uuid(),
+  titulo       text not null check (length(trim(titulo)) > 0),
+  concluida    boolean not null default false,
+  criado_em    timestamptz not null default now(),
+  concluida_em timestamptz
+);
+
+create index if not exists tarefas_ordem_idx on public.tarefas (concluida, criado_em desc);
+
+alter table public.tarefas enable row level security;
+
+-- Só o administrador enxerga e mexe nas tarefas.
+drop policy if exists tarefas_admin on public.tarefas;
+create policy tarefas_admin on public.tarefas
+  for all using (public.eh_admin()) with check (public.eh_admin());

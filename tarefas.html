@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas · Cofre de Informações</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar" id="topbar"></div>
+
+  <header>
+    <h1>Tarefas</h1>
+    <div class="sub" id="sub">Carregando...</div>
+  </header>
+
+  <div id="conteudo" hidden>
+    <section>
+      <h2>Nova tarefa</h2>
+      <div class="row">
+        <input type="text" id="titulo" placeholder="ex: renovar domínio da Acme" autocomplete="off" maxlength="200">
+        <button id="add">Adicionar</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pendentes (<span id="total-pendentes">0</span>)</h2>
+      <ul class="list tarefas" id="pendentes"></ul>
+      <div class="empty-state" id="vazio-pendentes" hidden>Nenhuma tarefa pendente.</div>
+    </section>
+
+    <section>
+      <h2>Concluídas (<span id="total-feitas">0</span>)</h2>
+      <ul class="list tarefas" id="feitas"></ul>
+      <div class="empty-state" id="vazio-feitas" hidden>Nada concluído ainda.</div>
+    </section>
+  </div>
+
+  <section id="negado" hidden>
+    <div class="empty-state">
+      As tarefas são exclusivas do perfil administrador.
+      <a href="index.html">Voltar ao cofre</a>.
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { exigirLogin, montarTopbar, api, esc, fmtDate, toast } from "./app.js";
+
+const sessao = await exigirLogin();
+if (sessao) {
+  const $ = (id) => document.getElementById(id);
+  montarTopbar($("topbar"), sessao, [
+    { href: "index.html", texto: "← Cofre" },
+    { href: "empresas.html", texto: "Empresas" },
+  ]);
+
+  const admin = await api.souAdmin();
+
+  if (!admin) {
+    $("sub").textContent = "Acesso restrito.";
+    $("negado").hidden = false;
+  } else {
+    $("sub").textContent = "Suas tarefas de administrador.";
+    $("conteudo").hidden = false;
+
+    const elTitulo = $("titulo"), elAdd = $("add"),
+          elPendentes = $("pendentes"), elFeitas = $("feitas");
+
+    let tarefas = [];
+
+    async function carregar() {
+      tarefas = await api.listarTarefas();
+      render();
+    }
+
+    function linha(t) {
+      return (
+        `<li class="${t.concluida ? "feita" : ""}">` +
+          `<label class="check">` +
+            `<input type="checkbox" data-toggle="${t.id}"${t.concluida ? " checked" : ""}>` +
+            `<span class="titulo">${esc(t.titulo)}</span>` +
+          `</label>` +
+          `<div class="acts">` +
+            `<span class="date">${fmtDate(t.criado_em)}</span>` +
+            `<button class="ghost danger" data-del="${t.id}">Excluir</button>` +
+          `</div>` +
+        `</li>`
+      );
+    }
+
+    function render() {
+      const pendentes = tarefas.filter((t) => !t.concluida);
+      const feitas = tarefas.filter((t) => t.concluida);
+
+      $("total-pendentes").textContent = pendentes.length;
+      $("total-feitas").textContent = feitas.length;
+
+      elPendentes.innerHTML = pendentes.map(linha).join("");
+      elFeitas.innerHTML = feitas.map(linha).join("");
+      $("vazio-pendentes").hidden = pendentes.length > 0;
+      $("vazio-feitas").hidden = feitas.length > 0;
+    }
+
+    /* ---------- Adicionar ---------- */
+    async function adicionar() {
+      const titulo = elTitulo.value.trim();
+      if (!titulo) { elTitulo.focus(); return toast("Escreva a tarefa."); }
+      elAdd.disabled = true;
+      try {
+        await api.criarTarefa(titulo);
+        elTitulo.value = "";
+        await carregar();
+        toast("Tarefa adicionada.");
+      } catch { /* erro já reportado */ } finally {
+        elAdd.disabled = false;
+        elTitulo.focus();
+      }
+    }
+    elAdd.addEventListener("click", adicionar);
+    elTitulo.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); adicionar(); }
+    });
+
+    /* ---------- Concluir / excluir ---------- */
+    async function aoClicar(ev) {
+      const check = ev.target.closest("input[data-toggle]");
+      if (check) {
+        const id = check.dataset.toggle;
+        const t = tarefas.find((x) => x.id === id);
+        if (!t) return;
+        check.disabled = true;
+        try {
+          await api.definirConcluida(id, check.checked);
+          await carregar();
+        } catch {
+          check.checked = t.concluida; // desfaz o visual se o banco recusou
+        } finally {
+          check.disabled = false;
+        }
+        return;
+      }
+
+      const btn = ev.target.closest("button[data-del]");
+      if (!btn) return;
+      const t = tarefas.find((x) => x.id === btn.dataset.del);
+      if (!t || !confirm(`Excluir "${t.titulo}"?`)) return;
+      try {
+        await api.excluirTarefa(t.id);
+        await carregar();
+        toast("Tarefa excluída.");
+      } catch { /* erro já reportado */ }
+    }
+    elPendentes.addEventListener("click", aoClicar);
+    elFeitas.addEventListener("click", aoClicar);
+
+    await carregar();
+    elTitulo.focus();
+  }
+}
+</script>
+</body>
+</html>

@@ -61,7 +61,10 @@ import {
 const sessao = await exigirLogin();
 if (sessao) {
   const $ = (id) => document.getElementById(id);
-  montarTopbar($("topbar"), sessao, [{ href: "empresas.html", texto: "Cadastro de empresas" }]);
+  const links = [{ href: "empresas.html", texto: "Cadastro de empresas" }];
+  // O atalho de tarefas só aparece para o perfil ADM.
+  if (await api.souAdmin()) links.push({ href: "tarefas.html", texto: "Tarefas" });
+  montarTopbar($("topbar"), sessao, links);
 
   const elQuestion = $("question"), elAnswer = $("answer"), elCompanies = $("companies"),
         elCompaniesEmpty = $("companies-empty"), elSel = $("empresa-sel"), elNote = $("note"),

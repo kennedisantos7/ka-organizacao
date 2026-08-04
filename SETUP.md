@@ -57,6 +57,19 @@ bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
 | `index.html` | Perguntar em linguagem natural e registrar anotações |
 | `empresas.html` | Cadastrar empresas (nome + responsável) e compartilhar |
 | `empresa.html` | Sessão de uma empresa: todas as anotações dela |
+| `tarefas.html` | Lista de tarefas — só o perfil ADM |
+
+## Perfil ADM e tarefas
+
+**O administrador é a primeira conta criada no cofre.** Então crie a sua conta
+antes da conta da outra pessoa — quem se cadastra primeiro fica com o perfil ADM.
+
+O ADM vê o atalho **Tarefas** no topo da tela inicial. Lá dá para adicionar,
+marcar como concluída (a tarefa desce para a lista de concluídas e fica riscada)
+e excluir. Desmarcar devolve a tarefa para as pendentes.
+
+Para a outra conta, as tarefas simplesmente não existem: o atalho não aparece e,
+mesmo abrindo `tarefas.html` na mão, o banco não devolve nem aceita nada.
 
 ## Links nas anotações
 

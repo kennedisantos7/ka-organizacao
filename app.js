@@ -136,6 +136,42 @@ export const api = {
     const { error } = await sb.from("anotacoes").delete().eq("id", id);
     if (error) erro(error, "excluir anotação");
   },
+
+  /* ---- Tarefas: exclusivas do perfil ADM (a primeira conta do cofre) ---- */
+
+  async souAdmin() {
+    const { data, error } = await sb.rpc("eh_admin");
+    if (error) { console.error("eh_admin", error); return false; }
+    return data === true;
+  },
+
+  async listarTarefas() {
+    const { data, error } = await sb
+      .from("tarefas")
+      .select("id, titulo, concluida, criado_em")
+      .order("concluida")
+      .order("criado_em", { ascending: false });
+    if (error) erro(error, "carregar tarefas");
+    return data;
+  },
+
+  async criarTarefa(titulo) {
+    const { error } = await sb.from("tarefas").insert({ titulo });
+    if (error) erro(error, "criar tarefa");
+  },
+
+  async definirConcluida(id, concluida) {
+    const { error } = await sb
+      .from("tarefas")
+      .update({ concluida, concluida_em: concluida ? new Date().toISOString() : null })
+      .eq("id", id);
+    if (error) erro(error, "atualizar tarefa");
+  },
+
+  async excluirTarefa(id) {
+    const { error } = await sb.from("tarefas").delete().eq("id", id);
+    if (error) erro(error, "excluir tarefa");
+  },
 };
 
 /* ---------------- Texto ---------------- */
