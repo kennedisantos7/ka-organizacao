@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="topnav" id="topnav"></div>
 <div class="wrap">
-  <div class="topbar" id="topbar"></div>
 
   <header>
     <h1>Cadastro de Empresas</h1>
@@ -43,12 +43,12 @@
 </div>
 
 <script type="module">
-import { exigirLogin, montarTopbar, api, esc, norm, toast } from "./app.js";
+import { exigirLogin, montarCabecalho, api, esc, norm, toast } from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
   const $ = (id) => document.getElementById(id);
-  montarTopbar($("topbar"), sessao, [{ href: "index.html", texto: "← Cofre" }]);
+  await montarCabecalho($("topnav"), sessao);
 
   const elNome = $("nome"), elResp = $("resp"), elSalvar = $("salvar"), elCancelar = $("cancelar"),
         elTitle = $("form-title"), elErro = $("erro"), elBusca = $("busca"),

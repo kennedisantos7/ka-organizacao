@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="topnav" id="topnav"></div>
 <div class="wrap">
-  <div class="topbar" id="topbar"></div>
 
   <header>
     <h1>Cofre de Informações</h1>
@@ -54,17 +54,14 @@
 
 <script type="module">
 import {
-  exigirLogin, montarTopbar, api, buscar, esc, fmtDate, toast, linkEmpresa,
+  exigirLogin, montarCabecalho, api, buscar, esc, fmtDate, toast, linkEmpresa,
   conteudoComLinks, dadosLocaisPendentes, importarDadosLocais,
 } from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
   const $ = (id) => document.getElementById(id);
-  const links = [{ href: "empresas.html", texto: "Cadastro de empresas" }];
-  // O atalho de tarefas só aparece para o perfil ADM.
-  if (await api.souAdmin()) links.push({ href: "tarefas.html", texto: "Tarefas" });
-  montarTopbar($("topbar"), sessao, links);
+  await montarCabecalho($("topnav"), sessao);
 
   const elQuestion = $("question"), elAnswer = $("answer"), elCompanies = $("companies"),
         elCompaniesEmpty = $("companies-empty"), elSel = $("empresa-sel"), elNote = $("note"),

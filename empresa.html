@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="topnav" id="topnav"></div>
 <div class="wrap">
-  <div class="topbar" id="topbar"></div>
 
   <header>
     <h1 id="nome">Carregando...</h1>
@@ -78,17 +78,14 @@
 
 <script type="module">
 import {
-  exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar,
+  exigirLogin, montarCabecalho, api, esc, norm, fmtDate, toast, copiar,
   conteudoComLinks, normalizarUrl,
 } from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
   const $ = (id) => document.getElementById(id);
-  montarTopbar($("topbar"), sessao, [
-    { href: "index.html", texto: "← Cofre" },
-    { href: "empresas.html", texto: "Empresas" },
-  ]);
+  await montarCabecalho($("topnav"), sessao);
 
   const id = new URLSearchParams(location.search).get("id");
   const empresa = id ? await api.obterEmpresa(id) : null;

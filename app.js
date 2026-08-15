@@ -39,13 +39,37 @@ export async function sair() {
   location.replace("login.html");
 }
 
-// Monta a barra superior com o email logado e o botão de sair.
-export function montarTopbar(el, sessao, links) {
-  const esquerda = (links || []).map((l) => `<a href="${l.href}">${esc(l.texto)}</a>`).join(" · ");
+// Cabeçalho de navegação, igual em todas as páginas. Marca o item da página
+// atual e mostra "Tarefas" apenas para o perfil ADM.
+export async function montarCabecalho(el, sessao) {
+  const pagina = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+
+  const itens = [
+    { href: "index.html", texto: "Cofre", em: ["", "index.html"] },
+    { href: "empresas.html", texto: "Empresas", em: ["empresas.html", "empresa.html"] },
+  ];
+  if (await api.souAdmin()) itens.push({ href: "tarefas.html", texto: "Tarefas", em: ["tarefas.html"] });
+
+  const cadeado =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="4" y="10" width="16" height="11" rx="2"></rect>' +
+    '<path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>';
+
   el.innerHTML =
-    `<div>${esquerda}</div>` +
-    `<div class="user"><span>${esc(sessao.user.email)}</span>` +
-    `<button class="ghost" id="sair">Sair</button></div>`;
+    '<div class="topnav-inner">' +
+      `<a class="marca" href="index.html">${cadeado}<span>Cofre</span></a>` +
+      '<nav class="menu">' +
+        itens.map((i) =>
+          `<a href="${i.href}" class="item${i.em.includes(pagina) ? " ativo" : ""}">${esc(i.texto)}</a>`
+        ).join("") +
+      "</nav>" +
+      '<div class="conta">' +
+        `<span class="email" title="${esc(sessao.user.email)}">${esc(sessao.user.email)}</span>` +
+        '<button class="ghost" id="sair">Sair</button>' +
+      "</div>" +
+    "</div>";
+
   el.querySelector("#sair").addEventListener("click", sair);
 }
 

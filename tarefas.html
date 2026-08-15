@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="topnav" id="topnav"></div>
 <div class="wrap">
-  <div class="topbar" id="topbar"></div>
 
   <header>
     <h1>Tarefas</h1>
@@ -46,15 +46,12 @@
 </div>
 
 <script type="module">
-import { exigirLogin, montarTopbar, api, esc, fmtDate, toast } from "./app.js";
+import { exigirLogin, montarCabecalho, api, esc, fmtDate, toast } from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
   const $ = (id) => document.getElementById(id);
-  montarTopbar($("topbar"), sessao, [
-    { href: "index.html", texto: "← Cofre" },
-    { href: "empresas.html", texto: "Empresas" },
-  ]);
+  await montarCabecalho($("topnav"), sessao);
 
   const admin = await api.souAdmin();
 
