@@ -57,7 +57,7 @@ function erro(e, acao) {
   throw e;
 }
 
-const CAMPOS_EMPRESA = "id, user_id, nome, responsavel, compartilhada";
+const CAMPOS_EMPRESA = "id, user_id, nome, responsavel, compartilhada, link_drive, link_canva";
 
 export const api = {
   // Traz as empresas do usuário + as que o outro membro compartilhou.
@@ -72,6 +72,43 @@ export const api = {
     const { data, error } = await sb.from("empresas").select(CAMPOS_EMPRESA).eq("id", id).maybeSingle();
     if (error) erro(error, "carregar empresa");
     return data;
+  },
+
+  // Links fixados da empresa (Drive e Canva). Só o dono consegue alterar.
+  async atualizarLinks(id, linkDrive, linkCanva) {
+    const { error } = await sb
+      .from("empresas")
+      .update({ link_drive: linkDrive || "", link_canva: linkCanva || "" })
+      .eq("id", id);
+    if (error) erro(error, "salvar os links");
+  },
+
+  /* ---- Tarefas de uma empresa ---- */
+
+  async listarTarefasEmpresa(empresaId) {
+    const { data, error } = await sb
+      .from("empresa_tarefas")
+      .select("id, user_id, titulo, concluida, criado_em")
+      .eq("empresa_id", empresaId)
+      .order("concluida")
+      .order("criado_em", { ascending: false });
+    if (error) erro(error, "carregar tarefas");
+    return data;
+  },
+
+  async criarTarefaEmpresa(empresaId, titulo) {
+    const { error } = await sb.from("empresa_tarefas").insert({ empresa_id: empresaId, titulo });
+    if (error) erro(error, "criar tarefa");
+  },
+
+  async atualizarTarefaEmpresa(id, campos) {
+    const { error } = await sb.from("empresa_tarefas").update(campos).eq("id", id);
+    if (error) erro(error, "atualizar tarefa");
+  },
+
+  async excluirTarefaEmpresa(id) {
+    const { error } = await sb.from("empresa_tarefas").delete().eq("id", id);
+    if (error) erro(error, "excluir tarefa");
   },
 
   // Liga/desliga o compartilhamento com o outro membro (só o dono consegue).
@@ -236,6 +273,13 @@ export function conteudoComLinks(texto) {
 
   out += esc(original.slice(fim));
   return out;
+}
+
+// Aceita o endereço colado de qualquer jeito e devolve algo clicável.
+export function normalizarUrl(valor) {
+  const v = String(valor || "").trim();
+  if (!v) return "";
+  return /^https?:\/\//i.test(v) ? v : "https://" + v.replace(/^\/+/, "");
 }
 
 export function fmtDate(ts) {

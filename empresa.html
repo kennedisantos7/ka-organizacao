@@ -21,6 +21,38 @@
 
   <div id="conteudo" hidden>
     <section>
+      <h2>Links fixados</h2>
+      <div class="pins" id="pins"></div>
+      <div id="pins-form" hidden>
+        <div class="field">
+          <label for="drive">Drive — pasta de arquivos</label>
+          <input type="text" id="drive" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="canva">Canva — pasta</label>
+          <input type="text" id="canva" placeholder="https://www.canva.com/folder/..." autocomplete="off">
+        </div>
+        <div class="actions">
+          <button id="salvar-links">Salvar links</button>
+          <button class="ghost" id="cancelar-links">Cancelar</button>
+        </div>
+      </div>
+      <div class="actions" id="pins-acoes" hidden>
+        <button class="ghost" id="editar-links">Editar links</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tarefas (<span id="tarefas-pendentes">0</span> pendente(s))</h2>
+      <div class="row">
+        <input type="text" id="tarefa-nova" placeholder="ex: enviar relatório de agosto" autocomplete="off" maxlength="200">
+        <button id="tarefa-add">Adicionar</button>
+      </div>
+      <ul class="list tarefas" id="tarefas" style="margin-top:14px"></ul>
+      <div class="empty-state" id="tarefas-vazio">Nenhuma tarefa para esta empresa.</div>
+    </section>
+
+    <section>
       <h2>Nova anotação</h2>
       <textarea id="note" placeholder="ex: senha do painel: abc123"></textarea>
       <div class="actions">
@@ -45,7 +77,10 @@
 </div>
 
 <script type="module">
-import { exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar, conteudoComLinks } from "./app.js";
+import {
+  exigirLogin, montarTopbar, api, esc, norm, fmtDate, toast, copiar,
+  conteudoComLinks, normalizarUrl,
+} from "./app.js";
 
 const sessao = await exigirLogin();
 if (sessao) {
@@ -100,6 +135,196 @@ if (sessao) {
       });
     }
 
+    /* ---------- Links fixados: Drive e Canva ---------- */
+    const elPins = $("pins"), elPinsForm = $("pins-form"), elPinsAcoes = $("pins-acoes"),
+          elDrive = $("drive"), elCanva = $("canva");
+
+    const PINS = [
+      { chave: "link_drive", rotulo: "Drive", campo: () => elDrive },
+      { chave: "link_canva", rotulo: "Canva", campo: () => elCanva },
+    ];
+
+    function renderPins() {
+      const definidos = PINS.filter((p) => empresa[p.chave]);
+      elPins.innerHTML = definidos.length
+        ? definidos.map((p) =>
+            `<a class="pin" href="${esc(empresa[p.chave])}" target="_blank" rel="noopener noreferrer" ` +
+            `title="${esc(empresa[p.chave])}">${p.rotulo}<span class="ext">↗</span></a>`
+          ).join("")
+        : `<div class="empty-state">Nenhum link fixado${meu ? " — use 'Editar links'." : "."}</div>`;
+      // Só o dono edita os dados da empresa.
+      elPinsAcoes.hidden = !meu;
+    }
+
+    function abrirFormPins() {
+      elDrive.value = empresa.link_drive || "";
+      elCanva.value = empresa.link_canva || "";
+      elPinsForm.hidden = false;
+      elPinsAcoes.hidden = true;
+      elDrive.focus();
+    }
+    function fecharFormPins() {
+      elPinsForm.hidden = true;
+      elPinsAcoes.hidden = !meu;
+    }
+
+    async function salvarLinks() {
+      const drive = normalizarUrl(elDrive.value);
+      const canva = normalizarUrl(elCanva.value);
+      $("salvar-links").disabled = true;
+      try {
+        await api.atualizarLinks(empresa.id, drive, canva);
+        empresa.link_drive = drive;
+        empresa.link_canva = canva;
+        fecharFormPins();
+        renderPins();
+        toast("Links salvos.");
+      } catch { /* erro já reportado */ } finally {
+        $("salvar-links").disabled = false;
+      }
+    }
+
+    $("editar-links").addEventListener("click", abrirFormPins);
+    $("cancelar-links").addEventListener("click", fecharFormPins);
+    $("salvar-links").addEventListener("click", salvarLinks);
+    [elDrive, elCanva].forEach((el) =>
+      el.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") { ev.preventDefault(); salvarLinks(); }
+        if (ev.key === "Escape") fecharFormPins();
+      })
+    );
+    renderPins();
+
+    /* ---------- Tarefas da empresa ---------- */
+    const elTarefas = $("tarefas"), elTarefaNova = $("tarefa-nova"),
+          elTarefaAdd = $("tarefa-add"), elTarefasVazio = $("tarefas-vazio");
+
+    let tarefas = [];
+    let editandoTarefa = null;
+
+    async function carregarTarefas() {
+      tarefas = await api.listarTarefasEmpresa(empresa.id);
+      renderTarefas();
+    }
+
+    function renderTarefas() {
+      $("tarefas-pendentes").textContent = tarefas.filter((t) => !t.concluida).length;
+
+      if (!tarefas.length) {
+        elTarefas.innerHTML = "";
+        elTarefasVazio.hidden = false;
+        return;
+      }
+      elTarefasVazio.hidden = true;
+
+      elTarefas.innerHTML = tarefas.map((t) => {
+        if (t.id === editandoTarefa) {
+          return (
+            `<li>` +
+              `<input type="text" class="edit-input" id="edit-${t.id}" value="${esc(t.titulo)}" maxlength="200">` +
+              `<div class="acts">` +
+                `<button class="ghost" data-save="${t.id}">Salvar</button>` +
+                `<button class="ghost" data-cancel="1">Cancelar</button>` +
+              `</div>` +
+            `</li>`
+          );
+        }
+        return (
+          `<li class="${t.concluida ? "feita" : ""}">` +
+            `<label class="check">` +
+              `<input type="checkbox" data-toggle="${t.id}"${t.concluida ? " checked" : ""}>` +
+              `<span class="titulo">${esc(t.titulo)}</span>` +
+            `</label>` +
+            `<div class="acts">` +
+              `<button class="ghost" data-edit="${t.id}">Editar</button>` +
+              `<button class="ghost danger" data-del="${t.id}">Excluir</button>` +
+            `</div>` +
+          `</li>`
+        );
+      }).join("");
+
+      if (editandoTarefa) {
+        const campo = $("edit-" + editandoTarefa);
+        if (campo) {
+          campo.focus();
+          campo.setSelectionRange(campo.value.length, campo.value.length);
+          campo.addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter") { ev.preventDefault(); salvarEdicao(editandoTarefa); }
+            if (ev.key === "Escape") { editandoTarefa = null; renderTarefas(); }
+          });
+        }
+      }
+    }
+
+    async function adicionarTarefa() {
+      const titulo = elTarefaNova.value.trim();
+      if (!titulo) { elTarefaNova.focus(); return toast("Escreva a tarefa."); }
+      elTarefaAdd.disabled = true;
+      try {
+        await api.criarTarefaEmpresa(empresa.id, titulo);
+        elTarefaNova.value = "";
+        await carregarTarefas();
+      } catch { /* erro já reportado */ } finally {
+        elTarefaAdd.disabled = false;
+        elTarefaNova.focus();
+      }
+    }
+
+    async function salvarEdicao(id) {
+      const campo = $("edit-" + id);
+      if (!campo) return;
+      const titulo = campo.value.trim();
+      if (!titulo) { campo.focus(); return toast("A tarefa não pode ficar vazia."); }
+      const t = tarefas.find((x) => x.id === id);
+      if (t && titulo === t.titulo) { editandoTarefa = null; return renderTarefas(); }
+      try {
+        await api.atualizarTarefaEmpresa(id, { titulo });
+        editandoTarefa = null;
+        await carregarTarefas();
+        toast("Tarefa atualizada.");
+      } catch { /* erro já reportado */ }
+    }
+
+    elTarefaAdd.addEventListener("click", adicionarTarefa);
+    elTarefaNova.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); adicionarTarefa(); }
+    });
+
+    elTarefas.addEventListener("click", async (ev) => {
+      const check = ev.target.closest("input[data-toggle]");
+      if (check) {
+        const t = tarefas.find((x) => x.id === check.dataset.toggle);
+        if (!t) return;
+        check.disabled = true;
+        try {
+          await api.atualizarTarefaEmpresa(t.id, { concluida: check.checked });
+          await carregarTarefas();
+        } catch {
+          check.checked = t.concluida; // desfaz o visual se o banco recusou
+        } finally {
+          check.disabled = false;
+        }
+        return;
+      }
+
+      const btn = ev.target.closest("button");
+      if (!btn) return;
+
+      if (btn.dataset.edit) { editandoTarefa = btn.dataset.edit; renderTarefas(); }
+      else if (btn.dataset.cancel) { editandoTarefa = null; renderTarefas(); }
+      else if (btn.dataset.save) { salvarEdicao(btn.dataset.save); }
+      else if (btn.dataset.del) {
+        const t = tarefas.find((x) => x.id === btn.dataset.del);
+        if (!t || !confirm(`Excluir a tarefa "${t.titulo}"?`)) return;
+        try {
+          await api.excluirTarefaEmpresa(t.id);
+          await carregarTarefas();
+          toast("Tarefa excluída.");
+        } catch { /* erro já reportado */ }
+      }
+    });
+
+    /* ---------- Anotações ---------- */
     const elNote = $("note"), elNotes = $("notes"), elEmpty = $("empty"),
           elTotal = $("total"), elFiltro = $("filtro"), elSave = $("save");
 
@@ -180,8 +405,8 @@ if (sessao) {
     });
     elFiltro.addEventListener("input", render);
 
-    await carregar();
-    elNote.focus();
+    await Promise.all([carregar(), carregarTarefas()]);
+    elTarefaNova.focus();
   }
 }
 </script>

@@ -219,7 +219,27 @@ ul.list.notes li { align-items: flex-start; }
 
 .loading { color: var(--muted); font-size: 14px; }
 
-/* Tarefas (perfil ADM) */
+/* Links fixados da empresa (Drive, Canva) */
+.pins { display: flex; flex-wrap: wrap; gap: 10px; }
+.pins .pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+}
+.pins .pin:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+.pins .empty-state { padding: 2px 0; }
+
+/* Tarefas (perfil ADM e por empresa) */
 ul.tarefas li { gap: 10px; }
 .check {
   display: flex;
@@ -244,6 +264,7 @@ ul.tarefas li { gap: 10px; }
 ul.tarefas li.feita .titulo { text-decoration: line-through; color: var(--muted); }
 ul.tarefas .acts { align-items: center; gap: 10px; }
 ul.tarefas .acts .date { margin-top: 0; white-space: nowrap; }
+.edit-input { flex: 1; min-width: 0; padding: 6px 10px; }
 
 /* Endereços reconhecidos dentro das anotações */
 .content a {

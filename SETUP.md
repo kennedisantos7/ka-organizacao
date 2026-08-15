@@ -56,8 +56,23 @@ bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
 |---|---|
 | `index.html` | Perguntar em linguagem natural e registrar anotações |
 | `empresas.html` | Cadastrar empresas (nome + responsável) e compartilhar |
-| `empresa.html` | Sessão de uma empresa: todas as anotações dela |
-| `tarefas.html` | Lista de tarefas — só o perfil ADM |
+| `empresa.html` | Painel da empresa: links fixados, tarefas e anotações |
+| `tarefas.html` | Lista de tarefas gerais — só o perfil ADM |
+
+## Painel da empresa
+
+**Links fixados** — dois atalhos sempre à mão no topo: **Drive** (pasta de
+arquivos) e **Canva** (pasta). Clique em *Editar links*, cole os endereços e
+salve; eles viram botões que abrem em nova guia. Pode colar sem o `https://`.
+Só o dono da empresa edita esses links; o outro membro vê e clica.
+
+**Tarefas da empresa** — lista com quadradinho: marcar conclui (o texto fica
+riscado), desmarcar reabre. Dá para **adicionar**, **editar** o texto (Enter
+salva, Esc cancela) e **excluir**. Em empresa compartilhada, os dois membros
+podem marcar e editar; apagar fica com quem criou a tarefa ou com o dono da
+empresa.
+
+Não confunda com `tarefas.html`: aquela é a lista geral do ADM, esta é por cliente.
 
 ## Perfil ADM e tarefas
 

@@ -10,11 +10,15 @@ create table if not exists public.empresas (
   nome          text not null check (length(trim(nome)) > 0),
   responsavel   text not null default '',
   compartilhada boolean not null default false,  -- visível para o outro membro
+  link_drive    text not null default '',        -- pasta de arquivos no Drive
+  link_canva    text not null default '',        -- pasta no Canva
   criado_em     timestamptz not null default now()
 );
 
--- Para bancos criados antes do compartilhamento existir:
+-- Para bancos criados antes destas colunas existirem:
 alter table public.empresas add column if not exists compartilhada boolean not null default false;
+alter table public.empresas add column if not exists link_drive text not null default '';
+alter table public.empresas add column if not exists link_canva text not null default '';
 
 create table if not exists public.anotacoes (
   id           uuid primary key default gen_random_uuid(),
@@ -114,6 +118,71 @@ create policy anotacoes_atualizar on public.anotacoes
 
 create policy anotacoes_excluir on public.anotacoes
   for delete using (auth.uid() = user_id);
+
+-- ------------------------------------------------- tarefas de cada empresa
+-- Seguem a visibilidade da empresa: quem enxerga a empresa, enxerga as tarefas.
+
+create table if not exists public.empresa_tarefas (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  empresa_id uuid not null references public.empresas (id) on delete cascade,
+  titulo     text not null check (length(trim(titulo)) > 0),
+  concluida  boolean not null default false,
+  criado_em  timestamptz not null default now()
+);
+
+create index if not exists empresa_tarefas_idx
+  on public.empresa_tarefas (empresa_id, concluida, criado_em desc);
+
+alter table public.empresa_tarefas enable row level security;
+
+drop policy if exists empresa_tarefas_ler       on public.empresa_tarefas;
+drop policy if exists empresa_tarefas_criar     on public.empresa_tarefas;
+drop policy if exists empresa_tarefas_atualizar on public.empresa_tarefas;
+drop policy if exists empresa_tarefas_excluir   on public.empresa_tarefas;
+
+create policy empresa_tarefas_ler on public.empresa_tarefas
+  for select using (
+    exists (
+      select 1 from public.empresas e
+      where e.id = empresa_tarefas.empresa_id
+        and (e.user_id = auth.uid() or e.compartilhada)
+    )
+  );
+
+create policy empresa_tarefas_criar on public.empresa_tarefas
+  for insert with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.empresas e
+      where e.id = empresa_id and (e.user_id = auth.uid() or e.compartilhada)
+    )
+  );
+
+-- Marcar concluída e editar o texto são colaborativos em empresa compartilhada.
+create policy empresa_tarefas_atualizar on public.empresa_tarefas
+  for update using (
+    exists (
+      select 1 from public.empresas e
+      where e.id = empresa_tarefas.empresa_id
+        and (e.user_id = auth.uid() or e.compartilhada)
+    )
+  ) with check (
+    exists (
+      select 1 from public.empresas e
+      where e.id = empresa_id and (e.user_id = auth.uid() or e.compartilhada)
+    )
+  );
+
+-- Apagar: quem criou a tarefa, ou o dono da empresa.
+create policy empresa_tarefas_excluir on public.empresa_tarefas
+  for delete using (
+    auth.uid() = user_id
+    or exists (
+      select 1 from public.empresas e
+      where e.id = empresa_tarefas.empresa_id and e.user_id = auth.uid()
+    )
+  );
 
 -- ------------------------------------------------- tarefas (perfil ADM)
 -- Administrador = a primeira conta criada no cofre.
