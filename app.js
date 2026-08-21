@@ -49,6 +49,7 @@ export async function montarCabecalho(el, sessao) {
     { href: "empresas.html", texto: "Empresas", em: ["empresas.html", "empresa.html"] },
   ];
   if (await api.souAdmin()) itens.push({ href: "tarefas.html", texto: "Tarefas", em: ["tarefas.html"] });
+  itens.push({ href: "conta.html", texto: "Conta", em: ["conta.html"] });
 
   const cadeado =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" ' +

@@ -58,6 +58,7 @@ bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
 | `empresas.html` | Cadastrar empresas (nome + responsável) e compartilhar |
 | `empresa.html` | Painel da empresa: links fixados, tarefas e anotações |
 | `tarefas.html` | Lista de tarefas gerais — só o perfil ADM |
+| `conta.html` | Trocar a senha da sua conta |
 
 ## Painel da empresa
 
@@ -73,6 +74,13 @@ podem marcar e editar; apagar fica com quem criou a tarefa ou com o dono da
 empresa.
 
 Não confunda com `tarefas.html`: aquela é a lista geral do ADM, esta é por cliente.
+
+## Trocar a senha
+
+Menu **Conta** → digite a nova senha duas vezes → salvar. A troca é imediata
+e não depende de email, o que importa porque o email de recuperação do Supabase
+nem sempre chega. Se ainda assim perder o acesso, dá para redefinir pelo painel:
+Authentication → Users → o usuário → Reset password.
 
 ## Perfil ADM e tarefas
 
