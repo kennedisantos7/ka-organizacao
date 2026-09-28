@@ -106,6 +106,8 @@ h2 {
   color: var(--muted);
   margin: 0 0 14px;
 }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.section-head h2 { margin: 0; }
 
 label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .field { margin-bottom: 14px; }

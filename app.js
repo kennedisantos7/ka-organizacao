@@ -85,7 +85,7 @@ function erro(e, acao) {
 const CAMPOS_EMPRESA = "id, user_id, nome, responsavel, compartilhada, link_drive, link_canva";
 
 export const api = {
-  // Traz as empresas do usuário + as que o outro membro compartilhou.
+  // Traz as empresas do usuário (o cofre é de uma conta só).
   async listarEmpresas() {
     const { data, error } = await sb.from("empresas").select(CAMPOS_EMPRESA);
     if (error) erro(error, "carregar empresas");
@@ -99,7 +99,7 @@ export const api = {
     return data;
   },
 
-  // Links fixados da empresa (Drive e Canva). Só o dono consegue alterar.
+  // Links fixados da empresa (Drive e Canva).
   async atualizarLinks(id, linkDrive, linkCanva) {
     const { error } = await sb
       .from("empresas")
@@ -134,12 +134,6 @@ export const api = {
   async excluirTarefaEmpresa(id) {
     const { error } = await sb.from("empresa_tarefas").delete().eq("id", id);
     if (error) erro(error, "excluir tarefa");
-  },
-
-  // Liga/desliga o compartilhamento com o outro membro (só o dono consegue).
-  async definirCompartilhamento(id, valor) {
-    const { error } = await sb.from("empresas").update({ compartilhada: valor }).eq("id", id);
-    if (error) erro(error, valor ? "compartilhar empresa" : "remover compartilhamento");
   },
 
   async criarEmpresa(nome, responsavel) {
@@ -233,6 +227,11 @@ export const api = {
   async excluirTarefa(id) {
     const { error } = await sb.from("tarefas").delete().eq("id", id);
     if (error) erro(error, "excluir tarefa");
+  },
+
+  async excluirConcluidas() {
+    const { error } = await sb.from("tarefas").delete().eq("concluida", true);
+    if (error) erro(error, "remover tarefas concluídas");
   },
 };
 

@@ -26,19 +26,14 @@
     <div class="actions">
       <button class="wide" id="entrar">Entrar</button>
     </div>
-    <div class="hint" style="margin-top:12px">
-      <span id="alternar-texto">Ainda não tem conta?</span>
-      <a href="#" id="alternar">Criar conta</a>
-    </div>
   </section>
 </div>
 
 <script type="module">
-import { sb, configurado, toast } from "./app.js";
+import { sb, configurado } from "./app.js";
 
 const $ = (id) => document.getElementById(id);
 const elEmail = $("email"), elSenha = $("senha"), elErro = $("erro"), elBtn = $("entrar");
-let criandoConta = false;
 
 if (!configurado) {
   elErro.textContent = "config.js ainda não está preenchido. Veja SETUP.md.";
@@ -52,20 +47,6 @@ if (configurado) {
   if (data.session) location.replace(destino);
 }
 
-function alternarModo(ev) {
-  if (ev) ev.preventDefault();
-  criandoConta = !criandoConta;
-  elErro.textContent = "";
-  $("modo-sub").textContent = criandoConta
-    ? "Crie sua conta para começar."
-    : "Entre para acessar seus dados.";
-  elBtn.textContent = criandoConta ? "Criar conta" : "Entrar";
-  $("alternar-texto").textContent = criandoConta ? "Já tem conta?" : "Ainda não tem conta?";
-  $("alternar").textContent = criandoConta ? "Entrar" : "Criar conta";
-  elSenha.setAttribute("autocomplete", criandoConta ? "new-password" : "current-password");
-}
-$("alternar").addEventListener("click", alternarModo);
-
 async function enviar() {
   const email = elEmail.value.trim();
   const senha = elSenha.value;
@@ -75,33 +56,20 @@ async function enviar() {
   if (senha.length < 6) { elSenha.focus(); elErro.textContent = "A senha precisa de pelo menos 6 caracteres."; return; }
 
   elBtn.disabled = true;
-  elBtn.textContent = criandoConta ? "Criando..." : "Entrando...";
+  elBtn.textContent = "Entrando...";
   try {
-    if (criandoConta) {
-      const { data, error } = await sb.auth.signUp({ email, password: senha });
-      if (error) throw error;
-      if (!data.session) {
-        // Projeto com confirmação de email ligada.
-        elErro.textContent = "";
-        toast("Conta criada. Confirme o link enviado para " + email + " e depois entre.");
-        alternarModo();
-        return;
-      }
-    } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password: senha });
-      if (error) throw error;
-    }
+    const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+    if (error) throw error;
     location.replace(destino);
   } catch (e) {
     const msg = String(e.message || e);
     elErro.textContent =
       /invalid login/i.test(msg) ? "Email ou senha incorretos."
-      : /already registered|already exists/i.test(msg) ? "Esse email já tem conta. Use 'Entrar'."
       : /email.*confirm/i.test(msg) ? "Confirme seu email antes de entrar."
       : msg;
   } finally {
     elBtn.disabled = false;
-    elBtn.textContent = criandoConta ? "Criar conta" : "Entrar";
+    elBtn.textContent = "Entrar";
   }
 }
 

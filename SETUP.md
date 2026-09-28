@@ -9,13 +9,23 @@ você acessa do PC, do celular ou de qualquer outro aparelho.
 O projeto Supabase **kanote** já está configurado:
 
 - Projeto reativado e no ar (`https://cklbqhsaohideafkymdp.supabase.co`)
-- Tabelas `empresas` e `anotacoes` criadas
-- Segurança por linha (RLS) ligada: cada pessoa só enxerga o que é dela ou o que
-  foi compartilhado com ela
-- Limite de **2 contas** ativo no banco — a terceira tentativa de cadastro é recusada
+- Tabelas `empresas`, `anotacoes`, `empresa_tarefas` e `tarefas` criadas
+- **Cofre privado, de uma conta só**: o dono é a primeira conta criada. Qualquer
+  outra conta não enxerga nem altera nada, e novos cadastros são recusados pelo banco
 - `config.js` preenchido com a URL e a chave pública
 
-Não falta nada no banco. Só falta publicar as páginas e criar as duas contas.
+## Passar para conta única (feito uma vez)
+
+1. Supabase → projeto kanote → SQL Editor → New query → cole o
+   `supabase-schema.sql` inteiro → **Run**. Isso corta o acesso da outra conta
+   na hora e desliga todo compartilhamento.
+2. Opcional: apagar a outra conta em Authentication → Users → o usuário →
+   *Delete user*. Atenção: isso apaga junto as empresas e anotações que **ela**
+   cadastrou. Sem apagar, a conta continua existindo, mas não vê nada.
+3. Recomendado: Authentication → Providers → Email → desmarcar
+   *Allow new users to sign up*. O banco já bloqueia; isso é uma trava a mais.
+
+A tela de login não tem mais o botão *Criar conta*.
 
 ## Publicar (necessário para acessar de outros aparelhos)
 
@@ -36,28 +46,14 @@ npx serve
 e abra o endereço que aparecer (algo como `http://localhost:3000`).
 Isso serve para testar, mas só funciona nesse computador.
 
-## Criar as duas contas
-
-1. Abra o endereço publicado — ele leva para a tela de login
-2. Clique em **Criar conta**, informe email e senha (mínimo 6 caracteres)
-3. Repita para a segunda pessoa
-
-Se o Supabase pedir confirmação por email, o link chega na caixa de entrada.
-Para desligar essa exigência: painel do Supabase → Authentication → Providers →
-Email → desmarcar *Confirm email*.
-
-Depois que as duas contas existirem, vale desativar novos cadastros no painel
-(Authentication → Providers → Email → *Allow new users to sign up*). O banco já
-bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
-
-## As três telas
+## As telas
 
 | Página | Para quê |
 |---|---|
 | `index.html` | Perguntar em linguagem natural e registrar anotações |
-| `empresas.html` | Cadastrar empresas (nome + responsável) e compartilhar |
+| `empresas.html` | Cadastrar empresas (nome + responsável) |
 | `empresa.html` | Painel da empresa: links fixados, tarefas e anotações |
-| `tarefas.html` | Lista de tarefas gerais — só o perfil ADM |
+| `tarefas.html` | Lista de tarefas gerais |
 | `conta.html` | Trocar a senha da sua conta |
 
 ## Painel da empresa
@@ -65,15 +61,12 @@ bloqueia a terceira conta de qualquer forma; isso é só uma trava a mais.
 **Links fixados** — dois atalhos sempre à mão no topo: **Drive** (pasta de
 arquivos) e **Canva** (pasta). Clique em *Editar links*, cole os endereços e
 salve; eles viram botões que abrem em nova guia. Pode colar sem o `https://`.
-Só o dono da empresa edita esses links; o outro membro vê e clica.
 
 **Tarefas da empresa** — lista com quadradinho: marcar conclui (o texto fica
 riscado), desmarcar reabre. Dá para **adicionar**, **editar** o texto (Enter
-salva, Esc cancela) e **excluir**. Em empresa compartilhada, os dois membros
-podem marcar e editar; apagar fica com quem criou a tarefa ou com o dono da
-empresa.
+salva, Esc cancela) e **excluir**.
 
-Não confunda com `tarefas.html`: aquela é a lista geral do ADM, esta é por cliente.
+Não confunda com `tarefas.html`: aquela é a lista geral, esta é por cliente.
 
 ## Trocar a senha
 
@@ -82,17 +75,12 @@ e não depende de email, o que importa porque o email de recuperação do Supaba
 nem sempre chega. Se ainda assim perder o acesso, dá para redefinir pelo painel:
 Authentication → Users → o usuário → Reset password.
 
-## Perfil ADM e tarefas
+## Tarefas gerais
 
-**O administrador é a primeira conta criada no cofre.** Então crie a sua conta
-antes da conta da outra pessoa — quem se cadastra primeiro fica com o perfil ADM.
-
-O ADM vê o atalho **Tarefas** no topo da tela inicial. Lá dá para adicionar,
-marcar como concluída (a tarefa desce para a lista de concluídas e fica riscada)
-e excluir. Desmarcar devolve a tarefa para as pendentes.
-
-Para a outra conta, as tarefas simplesmente não existem: o atalho não aparece e,
-mesmo abrindo `tarefas.html` na mão, o banco não devolve nem aceita nada.
+Menu **Tarefas**: adicionar, marcar como concluída (a tarefa desce para a lista
+de concluídas e fica riscada) e excluir. Desmarcar devolve a tarefa para as
+pendentes. O botão **Remover todas**, no topo das concluídas, apaga de uma vez
+todas as tarefas já concluídas (pede confirmação).
 
 ## Links nas anotações
 
@@ -104,20 +92,6 @@ painéis, o que for.
 Endereços muito longos aparecem encurtados no meio (`https://drive.google…haring`),
 mas o destino continua completo — passe o mouse para ver por inteiro. Emails
 **não** viram link, para não abrir o programa de email sem querer.
-
-## Compartilhamento
-
-Cada empresa nasce **privada**: só quem cadastrou enxerga.
-
-- Para liberar: em `empresas.html`, botão **Compartilhar** na linha da empresa
-  (ou o botão no topo da sessão dela). A empresa ganha a etiqueta *compartilhada*.
-- Para revogar: mesmo botão, agora **Descompartilhar**. O acesso do outro membro
-  cai na hora.
-
-Quando uma empresa está compartilhada, o outro membro pode ver as anotações e
-escrever novas. Ele **não** pode renomear, excluir a empresa, mexer no
-compartilhamento, nem apagar anotações que não escreveu — isso é garantido pelo
-banco, não só pela tela.
 
 ## Trazer os dados antigos
 

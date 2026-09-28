@@ -31,7 +31,10 @@
     </section>
 
     <section>
-      <h2>Concluídas (<span id="total-feitas">0</span>)</h2>
+      <div class="section-head">
+        <h2>Concluídas (<span id="total-feitas">0</span>)</h2>
+        <button class="ghost danger" id="limpar-feitas" hidden>Remover todas</button>
+      </div>
       <ul class="list tarefas" id="feitas"></ul>
       <div class="empty-state" id="vazio-feitas" hidden>Nada concluído ainda.</div>
     </section>
@@ -98,6 +101,7 @@ if (sessao) {
       elFeitas.innerHTML = feitas.map(linha).join("");
       $("vazio-pendentes").hidden = pendentes.length > 0;
       $("vazio-feitas").hidden = feitas.length > 0;
+      $("limpar-feitas").hidden = feitas.length === 0;
     }
 
     /* ---------- Adicionar ---------- */
@@ -149,6 +153,21 @@ if (sessao) {
         toast("Tarefa excluída.");
       } catch { /* erro já reportado */ }
     }
+    /* ---------- Remover todas as concluídas ---------- */
+    const elLimpar = $("limpar-feitas");
+    elLimpar.addEventListener("click", async () => {
+      const qtd = tarefas.filter((t) => t.concluida).length;
+      if (!qtd || !confirm(`Remover as ${qtd} tarefa(s) concluída(s)? Não dá para desfazer.`)) return;
+      elLimpar.disabled = true;
+      try {
+        await api.excluirConcluidas();
+        await carregar();
+        toast("Tarefas concluídas removidas.");
+      } catch { /* erro já reportado */ } finally {
+        elLimpar.disabled = false;
+      }
+    });
+
     elPendentes.addEventListener("click", aoClicar);
     elFeitas.addEventListener("click", aoClicar);
 

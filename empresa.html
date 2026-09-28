@@ -13,10 +13,6 @@
   <header>
     <h1 id="nome">Carregando...</h1>
     <div class="sub" id="responsavel"></div>
-    <div class="actions" id="compartilhar-area" hidden>
-      <button class="ghost" id="compartilhar"></button>
-      <span class="hint" id="compartilhar-hint"></span>
-    </div>
   </header>
 
   <div id="conteudo" hidden>
@@ -95,42 +91,11 @@ if (sessao) {
     $("erro").hidden = false;
     document.title = "Empresa não encontrada";
   } else {
-    const meu = empresa.user_id === sessao.user.id;
-
     $("nome").textContent = empresa.nome;
     $("responsavel").textContent =
-      (empresa.responsavel ? "Responsável: " + empresa.responsavel : "Sem responsável definido") +
-      (meu ? "" : " · empresa compartilhada com você");
+      empresa.responsavel ? "Responsável: " + empresa.responsavel : "Sem responsável definido";
     document.title = empresa.nome + " · Cofre";
     $("conteudo").hidden = false;
-
-    /* ---------- Compartilhamento (só o dono controla) ---------- */
-    if (meu) {
-      const area = $("compartilhar-area"), btn = $("compartilhar"), hint = $("compartilhar-hint");
-      area.hidden = false;
-
-      const pintar = () => {
-        btn.textContent = empresa.compartilhada ? "Desativar compartilhamento" : "Compartilhar com o outro membro";
-        hint.textContent = empresa.compartilhada
-          ? "O outro membro vê e pode anotar nesta empresa."
-          : "Só você vê esta empresa.";
-      };
-      pintar();
-
-      btn.addEventListener("click", async () => {
-        const novo = !empresa.compartilhada;
-        if (novo && !confirm(`Compartilhar "${empresa.nome}" com o outro membro do cofre?\n\nEle passa a ver e anotar informações desta empresa.`)) return;
-        btn.disabled = true;
-        try {
-          await api.definirCompartilhamento(empresa.id, novo);
-          empresa.compartilhada = novo;
-          pintar();
-          toast(novo ? "Empresa compartilhada." : "Compartilhamento removido.");
-        } catch { /* erro já reportado */ } finally {
-          btn.disabled = false;
-        }
-      });
-    }
 
     /* ---------- Links fixados: Drive e Canva ---------- */
     const elPins = $("pins"), elPinsForm = $("pins-form"), elPinsAcoes = $("pins-acoes"),
@@ -148,9 +113,8 @@ if (sessao) {
             `<a class="pin" href="${esc(empresa[p.chave])}" target="_blank" rel="noopener noreferrer" ` +
             `title="${esc(empresa[p.chave])}">${p.rotulo}<span class="ext">↗</span></a>`
           ).join("")
-        : `<div class="empty-state">Nenhum link fixado${meu ? " — use 'Editar links'." : "."}</div>`;
-      // Só o dono edita os dados da empresa.
-      elPinsAcoes.hidden = !meu;
+        : `<div class="empty-state">Nenhum link fixado — use 'Editar links'.</div>`;
+      elPinsAcoes.hidden = false;
     }
 
     function abrirFormPins() {
@@ -162,7 +126,7 @@ if (sessao) {
     }
     function fecharFormPins() {
       elPinsForm.hidden = true;
-      elPinsAcoes.hidden = !meu;
+      elPinsAcoes.hidden = false;
     }
 
     async function salvarLinks() {
@@ -367,17 +331,15 @@ if (sessao) {
       }
       elEmpty.hidden = true;
       elNotes.innerHTML = lista.map((a) => {
-        const minha = a.user_id === sessao.user.id;
         return (
           "<li>" +
             '<div class="body">' +
               `<div class="content">${conteudoComLinks(a.conteudo)}</div>` +
-              `<div class="date">${fmtDate(a.data_criacao)}${minha ? "" : " · anotado pelo outro membro"}</div>` +
+              `<div class="date">${fmtDate(a.data_criacao)}</div>` +
             "</div>" +
             '<div class="acts">' +
               `<button class="ghost" data-copy="${a.id}">Copiar</button>` +
-              // Só o autor apaga a própria anotação.
-              (minha ? `<button class="ghost danger" data-del="${a.id}">Excluir</button>` : "") +
+              `<button class="ghost danger" data-del="${a.id}">Excluir</button>` +
             "</div>" +
           "</li>"
         );

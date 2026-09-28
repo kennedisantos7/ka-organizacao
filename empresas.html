@@ -71,10 +71,7 @@ if (sessao) {
     if (!nome) { elNome.focus(); elErro.textContent = "Informe o nome da empresa."; return; }
 
     // Checagem local — o banco também tem índice único como garantia final.
-    // Só vale para as suas empresas: o outro membro pode ter uma de mesmo nome.
-    const dup = empresas.find(
-      (e) => e.user_id === sessao.user.id && norm(e.nome) === norm(nome) && e.id !== editandoId
-    );
+    const dup = empresas.find((e) => norm(e.nome) === norm(nome) && e.id !== editandoId);
     if (dup) { elNome.focus(); elErro.textContent = "Já existe uma empresa com esse nome."; return; }
 
     elSalvar.disabled = true;
@@ -165,26 +162,15 @@ if (sessao) {
     elLista.innerHTML = lista.map((e) => {
       const link = `empresa.html?id=${encodeURIComponent(e.id)}`;
       const qtd = contagem[e.id] || 0;
-      const meu = e.user_id === sessao.user.id;
-
-      const marca = !meu
-        ? '<span class="tag">compartilhada com você</span>'
-        : e.compartilhada
-        ? '<span class="tag on">compartilhada</span>'
-        : "";
-
-      // Empresa do outro membro: só dá para abrir e ler.
-      const acoes = meu
-        ? `<a class="ghost" href="${link}">Abrir</a>` +
-          `<button class="ghost" data-share="${e.id}">${e.compartilhada ? "Descompartilhar" : "Compartilhar"}</button>` +
-          `<button class="ghost" data-edit="${e.id}">Editar</button>` +
-          `<button class="ghost danger" data-del="${e.id}">Excluir</button>`
-        : `<a class="ghost" href="${link}">Abrir</a>`;
+      const acoes =
+        `<a class="ghost" href="${link}">Abrir</a>` +
+        `<button class="ghost" data-edit="${e.id}">Editar</button>` +
+        `<button class="ghost danger" data-del="${e.id}">Excluir</button>`;
 
       return (
         "<li>" +
           '<div class="info">' +
-            `<div class="nome"><a href="${link}">${esc(e.nome)}</a>${marca}</div>` +
+            `<div class="nome"><a href="${link}">${esc(e.nome)}</a></div>` +
             `<div class="resp">${e.responsavel ? esc(e.responsavel) : "sem responsável"} · ${qtd} anotação(ões)</div>` +
           "</div>" +
           `<div class="acts">${acoes}</div>` +
@@ -193,24 +179,11 @@ if (sessao) {
     }).join("");
   }
 
-  async function alternarCompartilhamento(id) {
-    const e = empresas.find((x) => x.id === id);
-    if (!e) return;
-    const novo = !e.compartilhada;
-    if (novo && !confirm(`Compartilhar "${e.nome}" com o outro membro do cofre?\n\nEle passa a ver e anotar informações desta empresa.`)) return;
-    try {
-      await api.definirCompartilhamento(id, novo);
-      await carregar();
-      toast(novo ? "Empresa compartilhada." : "Compartilhamento removido.");
-    } catch { /* erro já reportado */ }
-  }
-
   elLista.addEventListener("click", (ev) => {
     const btn = ev.target.closest("button");
     if (!btn) return;
     if (btn.dataset.edit) editar(btn.dataset.edit);
     else if (btn.dataset.del) excluir(btn.dataset.del);
-    else if (btn.dataset.share) alternarCompartilhamento(btn.dataset.share);
   });
   elBusca.addEventListener("input", render);
 
