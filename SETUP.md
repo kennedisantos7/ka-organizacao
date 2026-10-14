@@ -6,7 +6,7 @@ com busca por pergunta em linguagem natural, e listas de tarefas.
 ## Arquitetura
 
 - `server.mjs` — servidor Node que entrega as páginas e uma API JSON em `/api/...`
-- Banco **Postgres na Coolify** (sem Supabase). As tabelas são criadas sozinhas
+- Banco **Postgres na Coolify** (sem Supabase; dados antigos importados uma vez por `POST /api/importar`, que só aceita com o banco vazio). As tabelas são criadas sozinhas
   quando o servidor sobe.
 - Hospedagem: Coolify, projeto **KA Organizacao**, app `ka-organizacao-site`
   (Dockerfile, porta 3000). Cada push na `main` + redeploy publica a versão nova.
@@ -20,7 +20,6 @@ protege nada. Não divulgue o endereço.
 | Variável | Para quê |
 |---|---|
 | `DATABASE_URL` | Conexão com o Postgres da Coolify (obrigatória) |
-| `MIGRAR_SUPABASE_TOKEN` | Opcional. Token de acesso do Supabase (`sbp_...`): na subida, se o banco novo estiver **vazio**, copia empresas, anotações e tarefas (mantendo os ids). Depois da cópia, apague a variável. |
 
 ## Rodar no seu PC
 

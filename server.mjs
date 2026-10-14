@@ -54,50 +54,39 @@ create table if not exists tarefas (
 create index if not exists tarefas_ordem_idx on tarefas (concluida, criado_em desc);
 `;
 
-// Cópia única dos dados do Supabase: roda só se MIGRAR_SUPABASE_TOKEN (token de
-// acesso da conta, sbp_...) estiver definido e o banco novo ainda estiver vazio.
-// Lê pela API de gerenciamento do Supabase e mantém os ids, então os links continuam valendo.
-async function migrarDoSupabase() {
-  const token = process.env.MIGRAR_SUPABASE_TOKEN;
-  const ref = process.env.MIGRAR_SUPABASE_REF || "cklbqhsaohideafkymdp";
-  if (!token) return;
-  const { rows: [{ n }] } = await db.query("select count(*)::int as n from empresas");
-  if (n > 0) { console.log("migração: banco já tem dados, ignorada"); return; }
+// Importação única dos dados antigos (exportados do Supabase). Só aceita com o
+// banco vazio, então depois da primeira carga a rota não altera mais nada.
+// Mantém os ids, então os links continuam valendo.
+const TABELAS_IMPORT = {
+  empresas: ["id", "nome", "responsavel", "link_drive", "link_canva", "criado_em"],
+  anotacoes: ["id", "empresa_id", "conteudo", "data_criacao"],
+  empresa_tarefas: ["id", "empresa_id", "titulo", "concluida", "criado_em"],
+  tarefas: ["id", "titulo", "concluida", "criado_em", "concluida_em"],
+};
 
-  const tabelas = {
-    empresas: ["id", "nome", "responsavel", "link_drive", "link_canva", "criado_em"],
-    anotacoes: ["id", "empresa_id", "conteudo", "data_criacao"],
-    empresa_tarefas: ["id", "empresa_id", "titulo", "concluida", "criado_em"],
-    tarefas: ["id", "titulo", "concluida", "criado_em", "concluida_em"],
-  };
-  const consulta = "select json_build_object(" + Object.entries(tabelas).map(([t, cols]) =>
-    `'${t}', (select coalesce(json_agg(json_build_object(${cols.map((c) => `'${c}', ${c}`).join(", ")})), '[]') from public.${t})`
-  ).join(", ") + ") as dados";
-
-  const resp = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-    body: JSON.stringify({ query: consulta, read_only: true }),
-  });
-  if (!resp.ok) { console.error("migração: Supabase respondeu", resp.status, await resp.text()); return; }
-  const dados = (await resp.json())[0].dados;
-
+async function importar(dados) {
   const cliente = await db.connect();
   try {
     await cliente.query("begin");
-    for (const [t, cols] of Object.entries(tabelas)) {
-      for (const r of dados[t]) {
+    await cliente.query("lock table empresas in exclusive mode");
+    const { rows: [{ n }] } = await cliente.query("select count(*)::int as n from empresas");
+    if (n > 0) throw new ErroHttp(409, "O banco já tem dados; importação recusada.");
+    const totais = {};
+    for (const [t, cols] of Object.entries(TABELAS_IMPORT)) {
+      const linhas = Array.isArray(dados[t]) ? dados[t] : [];
+      for (const r of linhas) {
         await cliente.query(
           `insert into ${t} (${cols.join(", ")}) values (${cols.map((_, i) => "$" + (i + 1)).join(", ")})`,
           cols.map((c) => r[c])
         );
       }
-      console.log(`migração: ${t} ${dados[t].length}`);
+      totais[t] = linhas.length;
     }
     await cliente.query("commit");
+    return totais;
   } catch (e) {
     await cliente.query("rollback");
-    console.error("migração falhou", e);
+    throw e;
   } finally {
     cliente.release();
   }
@@ -168,6 +157,7 @@ const rotas = [
     um("update tarefas set concluida = $2, concluida_em = case when $2 then now() end where id = $1 returning *",
       [p.id, !!c.concluida])],
   ["DELETE", "/api/tarefas/concluidas", () => db.query("delete from tarefas where concluida")],
+  ["POST", "/api/importar", (_, c) => importar(c)],
   ["DELETE", "/api/tarefas/:id", (p) => db.query("delete from tarefas where id = $1", [p.id])],
 ];
 
@@ -246,7 +236,6 @@ async function estatico(res, url) {
 /* ---------------- Início ---------------- */
 
 await db.query(ESQUEMA);
-await migrarDoSupabase();
 
 http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
