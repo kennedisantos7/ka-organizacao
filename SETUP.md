@@ -20,7 +20,7 @@ protege nada. Não divulgue o endereço.
 | Variável | Para quê |
 |---|---|
 | `DATABASE_URL` | Conexão com o Postgres da Coolify (obrigatória) |
-| `MIGRAR_DE` | Opcional. Connection string do Supabase antigo: na subida, se o banco novo estiver **vazio**, copia empresas, anotações e tarefas (mantendo os ids). Depois da cópia, apague a variável. |
+| `MIGRAR_SUPABASE_TOKEN` | Opcional. Token de acesso do Supabase (`sbp_...`): na subida, se o banco novo estiver **vazio**, copia empresas, anotações e tarefas (mantendo os ids). Depois da cópia, apague a variável. |
 
 ## Rodar no seu PC
 

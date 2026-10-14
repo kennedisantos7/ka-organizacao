@@ -54,38 +54,52 @@ create table if not exists tarefas (
 create index if not exists tarefas_ordem_idx on tarefas (concluida, criado_em desc);
 `;
 
-// Cópia única dos dados do Supabase: roda só se MIGRAR_DE estiver definida e o
-// banco novo ainda estiver vazio. Mantém os ids, então os links continuam valendo.
+// Cópia única dos dados do Supabase: roda só se MIGRAR_SUPABASE_TOKEN (token de
+// acesso da conta, sbp_...) estiver definido e o banco novo ainda estiver vazio.
+// Lê pela API de gerenciamento do Supabase e mantém os ids, então os links continuam valendo.
 async function migrarDoSupabase() {
-  const origem = process.env.MIGRAR_DE;
-  if (!origem) return;
+  const token = process.env.MIGRAR_SUPABASE_TOKEN;
+  const ref = process.env.MIGRAR_SUPABASE_REF || "cklbqhsaohideafkymdp";
+  if (!token) return;
   const { rows: [{ n }] } = await db.query("select count(*)::int as n from empresas");
   if (n > 0) { console.log("migração: banco já tem dados, ignorada"); return; }
 
-  const sb = new pg.Client({ connectionString: origem, ssl: { rejectUnauthorized: false } });
-  await sb.connect();
-  const copiar = async (tabela, colunas) => {
-    const { rows } = await sb.query(`select ${colunas.join(", ")} from public.${tabela}`);
-    for (const r of rows) {
-      await db.query(
-        `insert into ${tabela} (${colunas.join(", ")}) values (${colunas.map((_, i) => "$" + (i + 1)).join(", ")})`,
-        colunas.map((c) => r[c])
-      );
-    }
-    console.log(`migração: ${tabela} ${rows.length}`);
+  const tabelas = {
+    empresas: ["id", "nome", "responsavel", "link_drive", "link_canva", "criado_em"],
+    anotacoes: ["id", "empresa_id", "conteudo", "data_criacao"],
+    empresa_tarefas: ["id", "empresa_id", "titulo", "concluida", "criado_em"],
+    tarefas: ["id", "titulo", "concluida", "criado_em", "concluida_em"],
   };
+  const consulta = "select json_build_object(" + Object.entries(tabelas).map(([t, cols]) =>
+    `'${t}', (select coalesce(json_agg(json_build_object(${cols.map((c) => `'${c}', ${c}`).join(", ")})), '[]') from public.${t})`
+  ).join(", ") + ") as dados";
+
+  const resp = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ query: consulta, read_only: true }),
+  });
+  if (!resp.ok) { console.error("migração: Supabase respondeu", resp.status, await resp.text()); return; }
+  const dados = (await resp.json())[0].dados;
+
+  const cliente = await db.connect();
   try {
-    await db.query("begin");
-    await copiar("empresas", ["id", "nome", "responsavel", "link_drive", "link_canva", "criado_em"]);
-    await copiar("anotacoes", ["id", "empresa_id", "conteudo", "data_criacao"]);
-    await copiar("empresa_tarefas", ["id", "empresa_id", "titulo", "concluida", "criado_em"]);
-    await copiar("tarefas", ["id", "titulo", "concluida", "criado_em", "concluida_em"]);
-    await db.query("commit");
+    await cliente.query("begin");
+    for (const [t, cols] of Object.entries(tabelas)) {
+      for (const r of dados[t]) {
+        await cliente.query(
+          `insert into ${t} (${cols.join(", ")}) values (${cols.map((_, i) => "$" + (i + 1)).join(", ")})`,
+          cols.map((c) => r[c])
+        );
+      }
+      console.log(`migração: ${t} ${dados[t].length}`);
+    }
+    await cliente.query("commit");
   } catch (e) {
-    await db.query("rollback");
+    await cliente.query("rollback");
     console.error("migração falhou", e);
   } finally {
-    await sb.end();
+    cliente.release();
   }
 }
 
