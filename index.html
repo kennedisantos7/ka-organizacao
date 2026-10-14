@@ -15,7 +15,6 @@
     <div class="sub">Pergunte em linguagem natural.</div>
   </header>
 
-  <div id="migracao" hidden></div>
 
   <section>
     <h2>Perguntar</h2>
@@ -54,14 +53,13 @@
 
 <script type="module">
 import {
-  exigirLogin, montarCabecalho, api, buscar, esc, fmtDate, toast, linkEmpresa,
-  conteudoComLinks, dadosLocaisPendentes, importarDadosLocais,
+  montarCabecalho, api, buscar, esc, fmtDate, toast, linkEmpresa,
+  conteudoComLinks,
 } from "./app.js";
 
-const sessao = await exigirLogin();
-if (sessao) {
+{
   const $ = (id) => document.getElementById(id);
-  await montarCabecalho($("topnav"), sessao);
+  montarCabecalho($("topnav"));
 
   const elQuestion = $("question"), elAnswer = $("answer"), elCompanies = $("companies"),
         elCompaniesEmpty = $("companies-empty"), elSel = $("empresa-sel"), elNote = $("note"),
@@ -193,38 +191,7 @@ if (sessao) {
   });
   elSel.addEventListener("change", () => { elSaved.hidden = true; });
 
-  /* ---------- Migração dos dados antigos deste navegador ---------- */
-  function ofereceMigracao() {
-    const locais = dadosLocaisPendentes();
-    if (!locais) return;
-    const el = $("migracao");
-    el.hidden = false;
-    el.className = "banner";
-    el.innerHTML =
-      `Este navegador tem <strong>${locais.empresas.length} empresa(s)</strong> e ` +
-      `<strong>${(locais.anotacoes || []).length} anotação(ões)</strong> da versão anterior, que ficavam ` +
-      "só aqui. Quer enviá-las para a nuvem?" +
-      '<div class="actions"><button id="importar">Importar para a nuvem</button>' +
-      '<button class="ghost" id="ignorar">Agora não</button></div>';
-
-    $("importar").addEventListener("click", async () => {
-      $("importar").disabled = true;
-      $("importar").textContent = "Importando...";
-      try {
-        const r = await importarDadosLocais(locais);
-        el.hidden = true;
-        await carregar();
-        toast(`Importado: ${r.empresas} empresa(s) e ${r.anotacoes} anotação(ões).`);
-      } catch {
-        $("importar").disabled = false;
-        $("importar").textContent = "Tentar de novo";
-      }
-    });
-    $("ignorar").addEventListener("click", () => { el.hidden = true; });
-  }
-
   await carregar();
-  ofereceMigracao();
 }
 </script>
 </body>

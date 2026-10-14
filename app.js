@@ -1,55 +1,17 @@
-// Módulo compartilhado: cliente Supabase, autenticação, camada de dados,
-// lógica de busca e utilitários de UI.
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+// Módulo compartilhado: camada de dados (API do próprio servidor), lógica de
+// busca e utilitários de UI.
 
-export const configurado =
-  /^https:\/\/.+\.supabase\.co\/?$/.test(SUPABASE_URL || "") && (SUPABASE_ANON_KEY || "").length > 30;
+/* ---------------- Cabeçalho ---------------- */
 
-export const sb = configurado ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-/* ---------------- Autenticação ---------------- */
-
-export async function sessaoAtual() {
-  if (!sb) return null;
-  const { data } = await sb.auth.getSession();
-  return data.session || null;
-}
-
-// Usar no topo de toda página protegida. Redireciona para o login se não houver sessão.
-export async function exigirLogin() {
-  if (!configurado) {
-    document.body.innerHTML =
-      '<div class="wrap"><section><h2>Configuração pendente</h2>' +
-      '<div class="empty-state">Preencha <strong>config.js</strong> com a URL e a chave anon do seu ' +
-      'projeto Supabase. O passo a passo está em <strong>SETUP.md</strong>.</div></section></div>';
-    return null;
-  }
-  const sessao = await sessaoAtual();
-  if (!sessao) {
-    const destino = location.pathname.split("/").pop() + location.search;
-    location.replace("login.html?next=" + encodeURIComponent(destino));
-    return null;
-  }
-  return sessao;
-}
-
-export async function sair() {
-  await sb.auth.signOut();
-  location.replace("login.html");
-}
-
-// Cabeçalho de navegação, igual em todas as páginas. Marca o item da página
-// atual e mostra "Tarefas" apenas para o perfil ADM.
-export async function montarCabecalho(el, sessao) {
+// Cabeçalho de navegação, igual em todas as páginas. Marca o item da página atual.
+export function montarCabecalho(el) {
   const pagina = (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
   const itens = [
     { href: "index.html", texto: "Cofre", em: ["", "index.html"] },
     { href: "empresas.html", texto: "Empresas", em: ["empresas.html", "empresa.html"] },
+    { href: "tarefas.html", texto: "Tarefas", em: ["tarefas.html"] },
   ];
-  if (await api.souAdmin()) itens.push({ href: "tarefas.html", texto: "Tarefas", em: ["tarefas.html"] });
-  itens.push({ href: "conta.html", texto: "Conta", em: ["conta.html"] });
 
   const cadeado =
     '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" ' +
@@ -65,173 +27,141 @@ export async function montarCabecalho(el, sessao) {
           `<a href="${i.href}" class="item${i.em.includes(pagina) ? " ativo" : ""}">${esc(i.texto)}</a>`
         ).join("") +
       "</nav>" +
-      '<div class="conta">' +
-        `<span class="email" title="${esc(sessao.user.email)}">${esc(sessao.user.email)}</span>` +
-        '<button class="ghost" id="sair">Sair</button>' +
-      "</div>" +
     "</div>";
-
-  el.querySelector("#sair").addEventListener("click", sair);
 }
 
 /* ---------------- Dados ---------------- */
 
-function erro(e, acao) {
-  console.error(acao, e);
-  toast("Erro ao " + acao + ": " + (e.message || "falha de conexão"));
-  throw e;
+// Chama a API do servidor. Erros viram aviso na tela e exceção para quem chamou.
+async function chamar(metodo, caminho, corpo, acao) {
+  let resp;
+  try {
+    resp = await fetch("/api" + caminho, {
+      method: metodo,
+      headers: corpo ? { "Content-Type": "application/json" } : {},
+      body: corpo ? JSON.stringify(corpo) : undefined,
+    });
+  } catch (e) {
+    toast("Erro ao " + acao + ": falha de conexão");
+    throw e;
+  }
+  const dados = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const e = new Error(dados.erro || "falha no servidor");
+    e.status = resp.status;
+    e.code = dados.code;
+    if (resp.status !== 404 && e.code !== "23505") toast("Erro ao " + acao + ": " + e.message);
+    throw e;
+  }
+  return dados;
 }
 
-const CAMPOS_EMPRESA = "id, user_id, nome, responsavel, compartilhada, link_drive, link_canva";
-
 export const api = {
-  // Traz as empresas do usuário (o cofre é de uma conta só).
   async listarEmpresas() {
-    const { data, error } = await sb.from("empresas").select(CAMPOS_EMPRESA);
-    if (error) erro(error, "carregar empresas");
+    const data = await chamar("GET", "/empresas", null, "carregar empresas");
     // Ordenação com acentos corretos (o banco não conhece a locale pt-BR).
     return data.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   },
 
   async obterEmpresa(id) {
-    const { data, error } = await sb.from("empresas").select(CAMPOS_EMPRESA).eq("id", id).maybeSingle();
-    if (error) erro(error, "carregar empresa");
-    return data;
+    try {
+      return await chamar("GET", "/empresas/" + encodeURIComponent(id), null, "carregar empresa");
+    } catch (e) {
+      if (e.status === 404) return null;
+      throw e;
+    }
   },
 
   // Links fixados da empresa (Drive e Canva).
   async atualizarLinks(id, linkDrive, linkCanva) {
-    const { error } = await sb
-      .from("empresas")
-      .update({ link_drive: linkDrive || "", link_canva: linkCanva || "" })
-      .eq("id", id);
-    if (error) erro(error, "salvar os links");
+    await chamar("PATCH", "/empresas/" + id, { link_drive: linkDrive || "", link_canva: linkCanva || "" }, "salvar os links");
   },
 
   /* ---- Tarefas de uma empresa ---- */
 
-  async listarTarefasEmpresa(empresaId) {
-    const { data, error } = await sb
-      .from("empresa_tarefas")
-      .select("id, user_id, titulo, concluida, criado_em")
-      .eq("empresa_id", empresaId)
-      .order("concluida")
-      .order("criado_em", { ascending: false });
-    if (error) erro(error, "carregar tarefas");
-    return data;
+  listarTarefasEmpresa(empresaId) {
+    return chamar("GET", `/empresas/${empresaId}/tarefas`, null, "carregar tarefas");
   },
 
   async criarTarefaEmpresa(empresaId, titulo) {
-    const { error } = await sb.from("empresa_tarefas").insert({ empresa_id: empresaId, titulo });
-    if (error) erro(error, "criar tarefa");
+    await chamar("POST", `/empresas/${empresaId}/tarefas`, { titulo }, "criar tarefa");
   },
 
   async atualizarTarefaEmpresa(id, campos) {
-    const { error } = await sb.from("empresa_tarefas").update(campos).eq("id", id);
-    if (error) erro(error, "atualizar tarefa");
+    await chamar("PATCH", "/empresa-tarefas/" + id, campos, "atualizar tarefa");
   },
 
   async excluirTarefaEmpresa(id) {
-    const { error } = await sb.from("empresa_tarefas").delete().eq("id", id);
-    if (error) erro(error, "excluir tarefa");
+    await chamar("DELETE", "/empresa-tarefas/" + id, null, "excluir tarefa");
   },
 
+  /* ---- Empresas ---- */
+
   async criarEmpresa(nome, responsavel) {
-    const { data, error } = await sb
-      .from("empresas")
-      .insert({ nome, responsavel: responsavel || "" })
-      .select(CAMPOS_EMPRESA)
-      .single();
-    if (error) {
-      if (error.code === "23505") throw new Error("Já existe uma empresa com esse nome.");
-      erro(error, "cadastrar empresa");
+    try {
+      return await chamar("POST", "/empresas", { nome, responsavel: responsavel || "" }, "cadastrar empresa");
+    } catch (e) {
+      if (e.code === "23505") throw new Error("Já existe uma empresa com esse nome.");
+      throw e;
     }
-    return data;
   },
 
   async atualizarEmpresa(id, nome, responsavel) {
-    const { error } = await sb.from("empresas").update({ nome, responsavel: responsavel || "" }).eq("id", id);
-    if (error) {
-      if (error.code === "23505") throw new Error("Já existe uma empresa com esse nome.");
-      erro(error, "atualizar empresa");
+    try {
+      await chamar("PATCH", "/empresas/" + id, { nome, responsavel: responsavel || "" }, "atualizar empresa");
+    } catch (e) {
+      if (e.code === "23505") throw new Error("Já existe uma empresa com esse nome.");
+      throw e;
     }
   },
 
   async excluirEmpresa(id) {
-    // As anotações somem junto (ON DELETE CASCADE no banco).
-    const { error } = await sb.from("empresas").delete().eq("id", id);
-    if (error) erro(error, "excluir empresa");
+    // As anotações e tarefas somem junto (ON DELETE CASCADE no banco).
+    await chamar("DELETE", "/empresas/" + id, null, "excluir empresa");
   },
 
-  // Sem empresaId, traz todas as anotações do usuário (usado pela busca global).
+  /* ---- Anotações ---- */
+
+  // Sem empresaId, traz todas as anotações (usado pela busca global).
   async listarAnotacoes(empresaId) {
-    let q = sb
-      .from("anotacoes")
-      .select("id, empresa_id, user_id, conteudo, data_criacao")
-      .order("data_criacao", { ascending: false });
-    if (empresaId) q = q.eq("empresa_id", empresaId);
-    const { data, error } = await q;
-    if (error) erro(error, "carregar anotações");
+    const q = empresaId ? "?empresa_id=" + encodeURIComponent(empresaId) : "";
+    const data = await chamar("GET", "/anotacoes" + q, null, "carregar anotações");
     return data.map((a) => ({ ...a, data_criacao: new Date(a.data_criacao).getTime() }));
   },
 
   async contarPorEmpresa() {
-    const { data, error } = await sb.from("anotacoes").select("empresa_id");
-    if (error) erro(error, "contar anotações");
-    const mapa = {};
-    data.forEach((a) => { mapa[a.empresa_id] = (mapa[a.empresa_id] || 0) + 1; });
-    return mapa;
+    const data = await chamar("GET", "/anotacoes/contagem", null, "contar anotações");
+    return Object.fromEntries(data.map((r) => [r.empresa_id, r.total]));
   },
 
   async criarAnotacao(empresaId, conteudo) {
-    const { error } = await sb.from("anotacoes").insert({ empresa_id: empresaId, conteudo });
-    if (error) erro(error, "salvar anotação");
+    await chamar("POST", "/anotacoes", { empresa_id: empresaId, conteudo }, "salvar anotação");
   },
 
   async excluirAnotacao(id) {
-    const { error } = await sb.from("anotacoes").delete().eq("id", id);
-    if (error) erro(error, "excluir anotação");
+    await chamar("DELETE", "/anotacoes/" + id, null, "excluir anotação");
   },
 
-  /* ---- Tarefas: exclusivas do perfil ADM (a primeira conta do cofre) ---- */
+  /* ---- Tarefas gerais ---- */
 
-  async souAdmin() {
-    const { data, error } = await sb.rpc("eh_admin");
-    if (error) { console.error("eh_admin", error); return false; }
-    return data === true;
-  },
-
-  async listarTarefas() {
-    const { data, error } = await sb
-      .from("tarefas")
-      .select("id, titulo, concluida, criado_em")
-      .order("concluida")
-      .order("criado_em", { ascending: false });
-    if (error) erro(error, "carregar tarefas");
-    return data;
+  listarTarefas() {
+    return chamar("GET", "/tarefas", null, "carregar tarefas");
   },
 
   async criarTarefa(titulo) {
-    const { error } = await sb.from("tarefas").insert({ titulo });
-    if (error) erro(error, "criar tarefa");
+    await chamar("POST", "/tarefas", { titulo }, "criar tarefa");
   },
 
   async definirConcluida(id, concluida) {
-    const { error } = await sb
-      .from("tarefas")
-      .update({ concluida, concluida_em: concluida ? new Date().toISOString() : null })
-      .eq("id", id);
-    if (error) erro(error, "atualizar tarefa");
+    await chamar("PATCH", "/tarefas/" + id, { concluida }, "atualizar tarefa");
   },
 
   async excluirTarefa(id) {
-    const { error } = await sb.from("tarefas").delete().eq("id", id);
-    if (error) erro(error, "excluir tarefa");
+    await chamar("DELETE", "/tarefas/" + id, null, "excluir tarefa");
   },
 
   async excluirConcluidas() {
-    const { error } = await sb.from("tarefas").delete().eq("concluida", true);
-    if (error) erro(error, "remover tarefas concluídas");
+    await chamar("DELETE", "/tarefas/concluidas", null, "remover tarefas concluídas");
   },
 };
 
@@ -422,48 +352,4 @@ export function copiar(texto) {
 
 export function linkEmpresa(id, texto) {
   return `<a href="empresa.html?id=${encodeURIComponent(id)}">${esc(texto)}</a>`;
-}
-
-/* ---------------- Migração do localStorage ---------------- */
-
-// Dados antigos deste navegador (versão sem nuvem), se ainda não importados.
-export function dadosLocaisPendentes() {
-  try {
-    if (localStorage.getItem("cofre.v1.importado")) return null;
-    const d = JSON.parse(localStorage.getItem("cofre.v1") || "null");
-    if (!d || !Array.isArray(d.empresas) || !d.empresas.length) return null;
-    return d;
-  } catch {
-    return null;
-  }
-}
-
-export async function importarDadosLocais(d) {
-  let empresas = 0, anotacoes = 0;
-  const existentes = await api.listarEmpresas();
-  const porNome = new Map(existentes.map((e) => [norm(e.nome), e.id]));
-
-  for (const emp of d.empresas) {
-    let novoId = porNome.get(norm(emp.nome));
-    if (!novoId) {
-      const criada = await api.criarEmpresa(emp.nome, emp.responsavel || "");
-      novoId = criada.id;
-      porNome.set(norm(emp.nome), novoId);
-      empresas++;
-    }
-    const notas = (d.anotacoes || []).filter((a) => a.empresa_id === emp.id);
-    if (notas.length) {
-      const { error } = await sb.from("anotacoes").insert(
-        notas.map((a) => ({
-          empresa_id: novoId,
-          conteudo: a.conteudo,
-          data_criacao: new Date(a.data_criacao).toISOString(),
-        }))
-      );
-      if (error) erro(error, "importar anotações");
-      anotacoes += notas.length;
-    }
-  }
-  localStorage.setItem("cofre.v1.importado", new Date().toISOString());
-  return { empresas, anotacoes };
 }

@@ -1,50 +1,34 @@
-# Cofre de Informações — como usar
+# Cofre de Informações — como funciona
 
 Sistema para guardar e consultar informações de clientes (senhas, logins, links),
-com busca por pergunta em linguagem natural. Os dados ficam no Supabase, então
-você acessa do PC, do celular ou de qualquer outro aparelho.
+com busca por pergunta em linguagem natural, e listas de tarefas.
 
-## O que já está pronto
+## Arquitetura
 
-O projeto Supabase **kanote** já está configurado:
+- `server.mjs` — servidor Node que entrega as páginas e uma API JSON em `/api/...`
+- Banco **Postgres na Coolify** (sem Supabase). As tabelas são criadas sozinhas
+  quando o servidor sobe.
+- Hospedagem: Coolify, projeto **KA Organizacao**, app `ka-organizacao-site`
+  (Dockerfile, porta 3000). Cada push na `main` + redeploy publica a versão nova.
 
-- Projeto reativado e no ar (`https://cklbqhsaohideafkymdp.supabase.co`)
-- Tabelas `empresas`, `anotacoes`, `empresa_tarefas` e `tarefas` criadas
-- **Cofre privado, de uma conta só**: o dono é a primeira conta criada. Qualquer
-  outra conta não enxerga nem altera nada, e novos cadastros são recusados pelo banco
-- `config.js` preenchido com a URL e a chave pública
+**Não há login.** Quem tiver o endereço do site vê e altera tudo — inclusive as
+senhas guardadas. O site pede aos buscadores para não indexá-lo, mas isso não
+protege nada. Não divulgue o endereço.
 
-## Passar para conta única (feito uma vez)
+## Variáveis de ambiente (Coolify)
 
-1. Supabase → projeto kanote → SQL Editor → New query → cole o
-   `supabase-schema.sql` inteiro → **Run**. Isso corta o acesso da outra conta
-   na hora e desliga todo compartilhamento.
-2. Opcional: apagar a outra conta em Authentication → Users → o usuário →
-   *Delete user*. Atenção: isso apaga junto as empresas e anotações que **ela**
-   cadastrou. Sem apagar, a conta continua existindo, mas não vê nada.
-3. Recomendado: Authentication → Providers → Email → desmarcar
-   *Allow new users to sign up*. O banco já bloqueia; isso é uma trava a mais.
+| Variável | Para quê |
+|---|---|
+| `DATABASE_URL` | Conexão com o Postgres da Coolify (obrigatória) |
+| `MIGRAR_DE` | Opcional. Connection string do Supabase antigo: na subida, se o banco novo estiver **vazio**, copia empresas, anotações e tarefas (mantendo os ids). Depois da cópia, apague a variável. |
 
-A tela de login não tem mais o botão *Criar conta*.
+## Rodar no seu PC
 
-## Publicar (necessário para acessar de outros aparelhos)
-
-As páginas usam módulos JavaScript, então **não funcionam com duplo clique**
-(`file://`) — precisam ser servidas por HTTP. Duas opções:
-
-**Opção 1 — Netlify Drop (mais rápido, grátis)**
-1. Abra <https://app.netlify.com/drop>
-2. Arraste a pasta `kaorganização` inteira para a página
-3. Pronto: você recebe um endereço tipo `https://algumnome.netlify.app`
-4. Abra esse endereço no celular e no PC
-
-**Opção 2 — testar só no seu PC**
 ```
-cd "caminho/para/kaorganização"
-npx serve
+npm install
+DATABASE_URL=postgres://usuario:senha@localhost:5432/cofre node server.mjs
 ```
-e abra o endereço que aparecer (algo como `http://localhost:3000`).
-Isso serve para testar, mas só funciona nesse computador.
+e abra `http://localhost:3000`.
 
 ## As telas
 
@@ -54,7 +38,6 @@ Isso serve para testar, mas só funciona nesse computador.
 | `empresas.html` | Cadastrar empresas (nome + responsável) |
 | `empresa.html` | Painel da empresa: links fixados, tarefas e anotações |
 | `tarefas.html` | Lista de tarefas gerais |
-| `conta.html` | Trocar a senha da sua conta |
 
 ## Painel da empresa
 
@@ -68,13 +51,6 @@ salva, Esc cancela) e **excluir**.
 
 Não confunda com `tarefas.html`: aquela é a lista geral, esta é por cliente.
 
-## Trocar a senha
-
-Menu **Conta** → digite a nova senha duas vezes → salvar. A troca é imediata
-e não depende de email, o que importa porque o email de recuperação do Supabase
-nem sempre chega. Se ainda assim perder o acesso, dá para redefinir pelo painel:
-Authentication → Users → o usuário → Reset password.
-
 ## Tarefas gerais
 
 Menu **Tarefas**: adicionar, marcar como concluída (a tarefa desce para a lista
@@ -86,33 +62,8 @@ todas as tarefas já concluídas (pede confirmação).
 
 Endereços digitados na anotação viram links clicáveis, que abrem em **nova guia**.
 Funciona com `https://...`, com `www.algo.com/...` e mesmo sem prefixo, quando há
-uma barra no caminho (`drive.google.com/file/...`). Vale para Drive, Canva,
-painéis, o que for.
+uma barra no caminho (`drive.google.com/file/...`).
 
 Endereços muito longos aparecem encurtados no meio (`https://drive.google…haring`),
 mas o destino continua completo — passe o mouse para ver por inteiro. Emails
 **não** viram link, para não abrir o programa de email sem querer.
-
-## Trazer os dados antigos
-
-Se você já tinha usado a versão anterior (que salvava só no navegador), abra o
-`index.html` **naquele mesmo navegador** e faça login: aparece um aviso no topo
-oferecendo importar as empresas e anotações para a nuvem. É uma vez só.
-
-## Segurança — o que está protegido e o que não está
-
-- O acesso exige login por email e senha, e o banco isola os dados por conta.
-- A chave que está no `config.js` é pública por design (é a chave *anon*): sozinha
-  ela não abre nada, porque as regras de RLS exigem uma sessão válida.
-- **Não** coloque nunca a chave `service_role` / `sb_secret_...` nesses arquivos —
-  ela ignora todas as regras.
-- As anotações ficam **legíveis no banco**. Quem tiver acesso administrativo ao
-  projeto Supabase (você, hoje) consegue lê-las. Se quiser que nem isso seja
-  possível, o caminho é criptografia com senha-mestra no navegador — dá para
-  fazer depois.
-
-## Pendência sua
-
-O token `sbp_...` que você colou no chat dá acesso administrativo à sua conta
-Supabase inteira. **Revogue** em <https://supabase.com/dashboard/account/tokens>
-e gere outro quando precisar.

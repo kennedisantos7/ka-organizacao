@@ -39,30 +39,17 @@
       <div class="empty-state" id="vazio-feitas" hidden>Nada concluído ainda.</div>
     </section>
   </div>
-
-  <section id="negado" hidden>
-    <div class="empty-state">
-      As tarefas são exclusivas do perfil administrador.
-      <a href="index.html">Voltar ao cofre</a>.
-    </div>
-  </section>
 </div>
 
 <script type="module">
-import { exigirLogin, montarCabecalho, api, esc, fmtDate, toast } from "./app.js";
+import { montarCabecalho, api, esc, fmtDate, toast } from "./app.js";
 
-const sessao = await exigirLogin();
-if (sessao) {
+{
   const $ = (id) => document.getElementById(id);
-  await montarCabecalho($("topnav"), sessao);
+  montarCabecalho($("topnav"));
 
-  const admin = await api.souAdmin();
-
-  if (!admin) {
-    $("sub").textContent = "Acesso restrito.";
-    $("negado").hidden = false;
-  } else {
-    $("sub").textContent = "Suas tarefas de administrador.";
+  {
+    $("sub").textContent = "Suas tarefas gerais.";
     $("conteudo").hidden = false;
 
     const elTitulo = $("titulo"), elAdd = $("add"),
